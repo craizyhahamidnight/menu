@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mom's Menu 电子点餐系统</title>
+    <!-- 引入 html2pdf 库用于生成 PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        :root {
+            --primary: #e67e22;
+            --bg: #f9f9f9;
+            --card-bg: #ffffff;
+            --text: #333;
+            --border: #ddd;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            color: var(--primary);
+        }
+        /* 总览区域 */
+        .overview-box {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            border: 2px solid var(--primary);
+        }
+        .overview-title {
+            font-weight: bold;
+            font-size: 1.2em;
+            margin-bottom: 10px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 5px;
+        }
+        .overview-list {
+            list-style-type: none;
+            padding-left: 0;
+            min-height: 50px;
+        }
+        .overview-list li {
+            margin-bottom: 5px;
+            padding: 5px;
+            background: #f0f0f0;
+            border-radius: 4px;
+        }
+        /* 控制按钮区域 */
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        button {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: bold;
+            transition: background 0.3s;
+        }
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+        }
+        .btn-primary:hover {
+            background-color: #d35400;
+        }
+        .btn-secondary {
+            background-color: #3498db;
+            color: white;
+        }
+        .btn-secondary:hover {
+            background-color: #2980b9;
+        }
+        /* 菜单卡片 */
+        .menu-item {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            margin-bottom: 15px;
+            position: relative;
+        }
+        .menu-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+        .menu-title {
+            font-size: 1.1em;
+            font-weight: bold;
+        }
+        .edit-btn {
+            background: none;
+            border: none;
+            font-size: 1.2em;
+            cursor: pointer;
+            color: #888;
+            padding: 5px;
+        }
+        .edit-btn:hover {
+            color: var(--primary);
+        }
+        .options-group {
+            margin-bottom: 15px;
+        }
+        .options-group p {
+            margin: 0 0 8px 0;
+            font-size: 0.9em;
+            color: #666;
+            font-weight: bold;
+        }
+        .option-label {
+            display: inline-block;
+            margin-right: 15px;
+            margin-bottom: 5px;
+            cursor: pointer;
+        }
+        .option-label input {
+            margin-right: 5px;
+            accent-color: var(--primary);
+        }
+        /* 编辑弹窗/区域 */
+        .edit-area {
+            display: none;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px dashed var(--border);
+        }
+        .edit-area input[type="text"] {
+            padding: 8px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            width: 60%;
+            margin-right: 10px;
+        }
+        .edit-area button {
+            padding: 8px 12px;
+            font-size: 0.9em;
+        }
+        .added-extras {
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Mom's Menu</h1>
+
+    <!-- 总览区域 (PDF生成区域) -->
+    <div class="overview-box" id="pdf-content">
+        <div class="overview-title">📋 订单总览 (Overview)</div>
+        <ul class="overview-list" id="overview-list">
+            <!-- 选中项会在这里生成 -->
+            <li style="color:#888; font-style:italic;">暂无选择...</li>
+        </ul>
+    </div>
+
+    <!-- 操作按钮 -->
+    <div class="controls">
+        <button class="btn-primary" onclick="generatePDF()">📄 生成 PDF</button>
+        <button class="btn-secondary" onclick="addNewDish()">➕ 添加新菜品</button>
+    </div>
+
+    <!-- 菜单容器 -->
+    <div id="menu-container">
+        <!-- 菜单会由 JS 动态生成 -->
+    </div>
+</div>
+
+<script>
+    // 初始菜单数据 (根据 PDF 提取并整理)
+    let menuData = [
+        {
+            id: 'd1',
+            name: '01. 中式汤面 (Chinese Noodle Soup)',
+            type: 'radio',
+            group: 'topping',
+            options: ['鸡肉 (Chicken)', '肉酱 (Minced beef)']
+        },
+        {
+            id: 'd2',
+            name: '02. 中式饺子 (Chinese Dumplings)',
+            type: 'radio',
+            group: 'cooking',
+            options: ['蒸饺 (Steamed)', '煎饺 (Pan-fried)']
+        },
+        {
+            id: 'd3',
+            name: '03. 泡面 (Instant Ramen)',
+            type: 'checkbox',
+            group: 'toppings',
+            options: ['鸡蛋 (Egg)', '肉酱 (Minced beef)', '芝士 (Cheese)']
+        },
+        {
+            id: 'd4',
+            name: '04. 美式松饼 (Fluffy Pancakes)',
+            type: 'radio',
+            group: 'topping',
+            options: ['蜂蜜 (Honey)', '枫糖浆 (Maple syrup)', '果酱 (Jam)']
+        },
+        {
+            id: 'd5',
+            name: '05. 玉米片/麦片 (Cereal Bowl)',
+            type: 'radio',
+            group: 'cereal',
+            options: ['玉米片 (Cornflakes)', '麦片 (Oats/Muesli)']
+        },
+        {
+            id: 'd6',
+            name: '02. 瑞典肉丸 (Swedish Meatballs)', // 特别加入肉圆/肉扁
+            type: 'radio',
+            group: 'meat',
+            options: ['肉圆 (Meatball)', '肉扁 (Meatflat)']
+        },
+        {
+            id: 'd7',
+            name: '01. 三文鱼寿司/刺身 (Salmon Sushi & Sashimi)',
+            type: 'radio',
+            group: 'style',
+            options: ['寿司 (Sushi)', '刺身 (Sashimi)', '各半 (Half/Half)']
+        },
+        {
+            id: 'd8',
+            name: '05. 泰式咖喱 (Thai Curry)',
+            type: 'radio',
+            group: 'protein',
+            options: ['海鲜 (Seafood)', '鸡腿 (Chicken thigh)', '牛肉 (Beef)']
+        },
+        {
+            id: 'd9',
+            name: '10. Bad Homburg 汉堡 (Signature Cheeseburger)',
+            type: 'checkbox',
+            group: 'extras',
+            options: ['加芝士 (Extra Cheese)', '加培根 (Bacon)']
+        },
+        {
+            id: 'd10',
+            name: '01. 薯条 (Fries Your Way)',
+            type: 'radio',
+            group: 'fries',
+            options: ['普通薯条 (Classic)', '薯格 (Waffle)', '红薯条 (Sweet Potato)']
+        }
+    ];
+
+    // 存储用户的选择状态: { dishId: { selectedOption: '...', extras: [...] } }
+    let userSelection = {};
+
+    // 渲染菜单
+    function renderMenu() {
+        const container = document.getElementById('menu-container');
+        container.innerHTML = '';
+
+        menuData.forEach(dish => {
+            const dishDiv = document.createElement('div');
+            dishDiv.className = 'menu-item';
+            dishDiv.id = `dish-${dish.id}`;
+
+            // 构建选项 HTML
+            let optionsHTML = `<div class="options-group"><p>Choose your option:</p>`;
+            dish.options.forEach((opt, index) => {
+                const inputType = dish.type;
+                const nameAttr = `dish_${dish.id}`;
+                optionsHTML += `
+                    <label class="option-label">
+                        <input type="${inputType}" name="${nameAttr}" value="${opt}" 
+                            onchange="updateSelection('${dish.id}', '${opt}', '${inputType}')">
+                        ${opt}
+                    </label>
+                `;
+            });
+            optionsHTML += `</div>`;
+
+            // 自定义附加项容器
+            let extrasHTML = `<div class="added-extras" id="extras-${dish.id}"></div>`;
+
+            dishDiv.innerHTML = `
+                <div class="menu-header">
+                    <div class="menu-title">${dish.name}</div>
+                    <button class="edit-btn" onclick="toggleEdit('${dish.id}')" title="添加附加项">✏️</button>
+                </div>
+                ${optionsHTML}
+                ${extrasHTML}
+                <!-- 编辑区域 -->
+                <div class="edit-area" id="edit-area-${dish.id}">
+                    <input type="text" id="input-${dish.id}" placeholder="输入自定义附加项 (如: 加辣)">
+                    <button class="btn-primary" onclick="addExtraToDish('${dish.id}')">添加</button>
+                </div>
+            `;
+
+            container.appendChild(dishDiv);
+        });
+    }
+
+    // 更新选择状态
+    function updateSelection(dishId, value, type) {
+        if (!userSelection[dishId]) {
+            userSelection[dishId] = { selectedOption: '', extras: [] };
+        }
+
+        if (type === 'radio') {
+            userSelection[dishId].selectedOption = value;
+        } else if (type === 'checkbox') {
+            // 对于复选框，记录选中的值
+            userSelection[dishId].selectedOption = value; // 简化处理，单个勾选会覆盖，但实际显示时解析
+        }
+        
+        updateOverview();
+    }
+
+    // 处理复选框多选
+    const originalUpdateSelection = updateSelection;
+    updateSelection = function(dishId, value, type) {
+        if (!userSelection[dishId]) {
+            userSelection[dishId] = { selectedOption: '', extras: [] };
+        }
+        
+        if (type === 'radio') {
+            userSelection[dishId].selectedOption = value;
+        } else if (type === 'checkbox') {
+            const dish = menuData.find(d => d.id === dishId);
+            // 获取该组所有勾选的
+            const checkedValues = Array.from(document.querySelectorAll(`input[name="dish_${dishId}"]:checked`)).map(el => el.value);
+            userSelection[dishId].selectedOption = checkedValues.join(', ');
+        }
+        updateOverview();
+    }
+
+    // 更新顶部总览
+    function updateOverview() {
+        const list = document.getElementById('overview-list');
+        list.innerHTML = '';
+        let hasItem = false;
+        let count = 1;
+
+        menuData.forEach(dish => {
+            const sel = userSelection[dish.id];
+            if (sel && (sel.selectedOption || (sel.extras && sel.extras.length > 0))) {
+                hasItem = true;
+                let text = `${count}. ${dish.name}`;
+                if (sel.selectedOption) text += ` - ${sel.selectedOption}`;
+                if (sel.extras && sel.extras.length > 0) {
+                    text += ` (附加: ${sel.extras.join(', ')})`;
+                }
+                
+                const li = document.createElement('li');
+                li.textContent = text;
+                list.appendChild(li);
+                count++;
+            }
+        });
+
+        if (!hasItem) {
+            list.innerHTML = '<li style="color:#888; font-style:italic;">暂无选择...</li>';
+        }
+    }
+
+    // 生成 PDF
+    function generatePDF() {
+        const element = document.getElementById('pdf-content');
+        const opt = {
+            margin:       0.5,
+            filename:     'Moms_Menu_Order.pdf',
+            image:        { type: 'jpeg', quality: 0.98 },
+            html2canvas:  { scale: 2 },
+            jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+        };
+        html2pdf().set(opt).from(element).save();
+    }
+
+    // 显示/隐藏编辑区域
+    function toggleEdit(dishId) {
+        const area = document.getElementById(`edit-area-${dishId}`);
+        if (area.style.display === 'block') {
+            area.style.display = 'none';
+        } else {
+            area.style.display = 'block';
+        }
+    }
+
+    // 为特定菜品添加附加项
+    function addExtraToDish(dishId) {
+        const input = document.getElementById(`input-${dishId}`);
+        const value = input.value.trim();
+        if (!value) return;
+
+        // 更新数据模型
+        if (!userSelection[dishId]) {
+            userSelection[dishId] = { selectedOption: '', extras: [] };
+        }
+        userSelection[dishId].extras.push(value);
+
+        // 更新 UI (在附加项容器中生成复选框)
+        const extrasContainer = document.getElementById(`extras-${dishId}`);
+        const label = document.createElement('label');
+        label.className = 'option-label';
+        label.innerHTML = `
+            <input type="checkbox" checked disabled> 
+            <span style="color:var(--primary); font-weight:bold;">${value} (自定义附加)</span>
+        `;
+        extrasContainer.appendChild(label);
+
+        input.value = ''; // 清空输入框
+        document.getElementById(`edit-area-${dishId}`).style.display = 'none'; // 隐藏编辑区
+        
+        updateOverview();
+    }
+
+    // 添加整个新菜品
+    function addNewDish() {
+        const name = prompt("请输入新菜品的名称 (例如: 06. 宫保鸡丁):");
+        if (!name) return;
+        
+        const optionStr = prompt("请输入该菜品的选项 (用英文逗号分隔，如: 微辣,中辣,特辣):");
+        let options = [];
+        if (optionStr) {
+            options = optionStr.split(',').map(s => s.trim()).filter(s => s);
+        } else {
+            options = ['默认'];
+        }
+
+        const newDish = {
+            id: 'd' + (menuData.length + 1),
+            name: name,
+            type: 'radio',
+            group: 'custom',
+            options: options
+        };
+
+        menuData.push(newDish);
+        renderMenu();
+    }
+
+    // 初始化
+    window.onload = function() {
+        renderMenu();
+        updateOverview();
+    };
+</script>
+
+</body>
+</html>
