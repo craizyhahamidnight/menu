@@ -99,10 +99,23 @@
             border-bottom: 1px solid var(--border);
             padding-bottom: 10px;
             margin-bottom: 15px;
+            gap: 10px;
         }
         .menu-title {
             font-size: 1.1em;
             font-weight: bold;
+            flex: 1; /* 让标题占据剩余空间 */
+        }
+        /* 编辑模式下的修改菜名输入框 */
+        .edit-name-input {
+            width: 95%;
+            padding: 8px;
+            font-size: 1.1em;
+            font-weight: bold;
+            border: 1px solid var(--primary);
+            border-radius: 5px;
+            background: #fff;
+            color: var(--text);
         }
         .header-actions {
             display: flex;
@@ -245,11 +258,20 @@
             dishDiv.className = `menu-item ${isEditing ? 'editing-mode' : ''}`;
             
             // 头部：标题和操作按钮
+            let titleHtml = '';
+            if (isEditing) {
+                // 如果在编辑模式，把标题变成输入框
+                titleHtml = `<input type="text" class="edit-name-input" id="edit-name-${dish.id}" value="${dish.name}" placeholder="输入菜品名称">`;
+            } else {
+                // 正常状态显示文字
+                titleHtml = `<div class="menu-title">${dish.name}</div>`;
+            }
+
             dishDiv.innerHTML = `
                 <div class="menu-header">
-                    <div class="menu-title">${dish.name}</div>
+                    ${titleHtml}
                     <div class="header-actions">
-                        <button class="icon-btn" onclick="toggleEdit('${dish.id}')" title="${isEditing ? '保存并退出' : '编辑选项'}">
+                        <button class="icon-btn" onclick="toggleEdit('${dish.id}')" title="${isEditing ? '保存并退出' : '编辑菜品'}">
                             ${isEditing ? '✅' : '✏️'}
                         </button>
                         <button class="icon-btn delete-dish-btn" onclick="deleteDish('${dish.id}')" title="删除菜品">🗑️</button>
@@ -344,7 +366,6 @@
         if (dish.type === 'radio') {
             if (isChecked) {
                 userSelection[dishId].selected = [value];
-                // 如果这是单选，界面上把其他的勾选去掉
                 document.querySelectorAll(`input[name="dish_${dishId}"]`).forEach(cb => {
                     if (cb.value !== value) cb.checked = false;
                 });
@@ -365,8 +386,24 @@
 
     // 切换编辑模式
     function toggleEdit(dishId) {
+        // 如果当前点击的是正在编辑的菜品，说明要保存退出
+        if (editingDishId === dishId) {
+            // 获取输入框中的新名字
+            const nameInput = document.getElementById(`edit-name-${dishId}`);
+            if (nameInput) {
+                const newName = nameInput.value.trim();
+                if (newName) {
+                    // 更新数据源中的名字
+                    const dish = menuData.find(d => d.id === dishId);
+                    dish.name = newName;
+                }
+            }
+        }
+        
+        // 切换状态并重新渲染
         editingDishId = editingDishId === dishId ? null : dishId;
         renderMenu();
+        updateOverview(); // 名字改变后，总览也要跟着变
     }
 
     // 删除选项
@@ -374,7 +411,6 @@
         const dish = menuData.find(d => d.id === dishId);
         const removedOpt = dish.options.splice(index, 1)[0];
         
-        // 如果用户之前选了这个选项，也要从选中记录里删掉
         if (userSelection[dishId] && userSelection[dishId].selected) {
             userSelection[dishId].selected = userSelection[dishId].selected.filter(v => v !== removedOpt);
         }
@@ -405,7 +441,6 @@
 
     // 添加备注
     function addExtra(dishId) {
-        // 兼容两种输入框ID（编辑模式 / 正常模式）
         const input = document.getElementById(`new-extra-${dishId}`) || document.getElementById(`quick-extra-${dishId}`);
         const val = input.value.trim();
         if (!val) return;
@@ -421,11 +456,8 @@
     function deleteDish(dishId) {
         if (!confirm("确定要删除整个菜品吗？")) return;
         
-        // 从菜单数组中删除
         menuData = menuData.filter(d => d.id !== dishId);
-        // 清除用户对这个菜品的选餐记录
         delete userSelection[dishId];
-        // 如果正好在编辑这个菜品，退出编辑状态
         if (editingDishId === dishId) editingDishId = null;
         
         renderMenu();
