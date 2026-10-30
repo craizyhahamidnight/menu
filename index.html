@@ -300,7 +300,6 @@
     let editingDishId = null;
     let activeFilters = [];
 
-    // 保持之前的存储 Key 以确保兼容你目前的本地数据
     const STORAGE_KEY_MENU = 'mom_menu_data_v2';
     const STORAGE_KEY_SELECTION = 'mom_menu_selection_v2';
 
@@ -428,7 +427,7 @@
                     </div>
                 `;
             } else {
-                let optionsHtml = `<div class="options-group"><p>请选择：</p>`;
+                let optionsHtml = `<div class="options-group"><p>请选择（可多选）：</p>`;
                 dish.options.forEach((opt) => {
                     let isChecked = sel.selected.includes(opt);
                     optionsHtml += `
@@ -479,27 +478,20 @@
         if (activeFilters.length > 0) renderMenu();
     }
 
-    // === 基础业务逻辑 ===
+    // === 核心修改：全部改为多选逻辑 ===
     function handleOptionChange(dishId, value, isChecked) {
-        const dish = menuData.find(d => d.id === dishId);
         if (!userSelection[dishId]) userSelection[dishId] = { selected: [], extras: [] };
 
-        if (dish.type === 'radio') {
-            if (isChecked) {
-                userSelection[dishId].selected = [value];
-                document.querySelectorAll(`input[name="dish_${dishId}"]`).forEach(cb => {
-                    if (cb.value !== value) cb.checked = false;
-                });
-            } else {
-                userSelection[dishId].selected = [];
+        if (isChecked) {
+            // 如果选中，且数组里还没有，就加进去
+            if (!userSelection[dishId].selected.includes(value)) {
+                userSelection[dishId].selected.push(value);
             }
         } else {
-            if (isChecked) {
-                if (!userSelection[dishId].selected.includes(value)) userSelection[dishId].selected.push(value);
-            } else {
-                userSelection[dishId].selected = userSelection[dishId].selected.filter(v => v !== value);
-            }
+            // 如果取消，就从数组里过滤掉
+            userSelection[dishId].selected = userSelection[dishId].selected.filter(v => v !== value);
         }
+        
         saveToLocal();
         updateOverview();
     }
@@ -580,7 +572,7 @@
         menuData.push({
             id: 'd' + Date.now(),
             name: name,
-            type: 'radio',
+            type: 'checkbox', // 新建默认给 checkbox
             options: options,
             tags: []
         });
@@ -642,14 +634,8 @@
     // === 仅清空点餐（保留所有自定义设置） ===
     function clearSelectionOnly() {
         if (!confirm("确定要清空当前勾选的菜品和备注吗？\n\n💡 您添加的菜品、修改的菜名、选项、以及早中晚标签将全部保留。")) return;
-
-        // 清空点餐状态
         userSelection = {};
-        
-        // 强制退出正在编辑的状态
         editingDishId = null;
-
-        // 保存并重新渲染
         saveToLocal();
         renderMenu();
         updateOverview();
