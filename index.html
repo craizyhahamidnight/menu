@@ -266,7 +266,7 @@
             <button class="btn-primary" onclick="generatePDFAndEmail()">📄 生成 PDF & 发送邮件</button>
             <button class="btn-secondary" onclick="addNewDish()">➕ 添加新菜品</button>
         </div>
-        <button class="btn-warning" onclick="resetAll()">🔄 全部复原</button>
+        <button class="btn-warning" onclick="clearSelectionOnly()">🗑️ 仅清空点餐</button>
     </div>
 
     <!-- 过滤器区域 -->
@@ -281,7 +281,7 @@
 </div>
 
 <script>
-    // 默认菜单数据（初始不带标签，带 tags 字段为了结构统一）
+    // 默认菜单数据
     const DEFAULT_MENU = [
         { id: 'd1', name: '中式汤面', type: 'radio', options: ['鸡肉', '肉臊子'], tags: [] },
         { id: 'd2', name: '中式饺子', type: 'radio', options: ['蒸饺', '煎饺'], tags: [] },
@@ -298,8 +298,9 @@
     let menuData = [];
     let userSelection = {};
     let editingDishId = null;
-    let activeFilters = []; // 当前选中的过滤器标签
+    let activeFilters = [];
 
+    // 保持之前的存储 Key 以确保兼容你目前的本地数据
     const STORAGE_KEY_MENU = 'mom_menu_data_v2';
     const STORAGE_KEY_SELECTION = 'mom_menu_selection_v2';
 
@@ -317,7 +318,6 @@
         if (savedMenu) {
             try {
                 menuData = JSON.parse(savedMenu);
-                // 兼容旧数据，确保 tags 存在
                 menuData.forEach(d => { if (!d.tags) d.tags = []; });
                 userSelection = savedSelection ? JSON.parse(savedSelection) : {};
             } catch (e) {
@@ -337,7 +337,6 @@
         } else {
             activeFilters.push(tag);
         }
-        // 更新按钮 UI
         ['breakfast', 'lunch', 'dinner'].forEach(t => {
             const btn = document.getElementById(`filter-${t}`);
             if (activeFilters.includes(t)) btn.classList.add('active');
@@ -351,10 +350,8 @@
         const container = document.getElementById('menu-container');
         container.innerHTML = '';
 
-        // 根据过滤器过滤数据
         const displayData = menuData.filter(dish => {
-            if (activeFilters.length === 0) return true; // 没选过滤器，显示所有
-            // 只要菜品标签中包含任意一个选中的过滤器，就显示
+            if (activeFilters.length === 0) return true;
             return dish.tags.some(t => activeFilters.includes(t));
         });
 
@@ -374,7 +371,6 @@
                 ? `<input type="text" class="edit-name-input" id="edit-name-${dish.id}" value="${dish.name}" placeholder="输入菜品名称">`
                 : `<div class="menu-title">${dish.name}</div>`;
 
-            // 标签 UI
             const tagHtml = `
                 <div class="tags-group">
                     <button class="tag-btn ${dish.tags.includes('breakfast') ? 'active' : ''}" onclick="toggleDishTag('${dish.id}', 'breakfast')">🌅 早饭</button>
@@ -476,18 +472,14 @@
             dish.tags.push(tag);
         }
         saveToLocal();
-        // 更新当前按钮的 UI 而不重新渲染整个列表，以免页面跳动
+        
         const btn = document.querySelector(`button[onclick="toggleDishTag('${dishId}', '${tag}')"]`);
-        if (btn) {
-            btn.classList.toggle('active');
-        }
-        // 如果当前有过滤器，重新渲染列表以显示/隐藏
-        if (activeFilters.length > 0) {
-            renderMenu();
-        }
+        if (btn) btn.classList.toggle('active');
+        
+        if (activeFilters.length > 0) renderMenu();
     }
 
-    // === 基础业务逻辑（不变） ===
+    // === 基础业务逻辑 ===
     function handleOptionChange(dishId, value, isChecked) {
         const dish = menuData.find(d => d.id === dishId);
         if (!userSelection[dishId]) userSelection[dishId] = { selected: [], extras: [] };
@@ -590,7 +582,7 @@
             name: name,
             type: 'radio',
             options: options,
-            tags: [] // 新建菜品默认无标签
+            tags: []
         });
         saveToLocal();
         renderMenu();
@@ -623,7 +615,6 @@
     function generatePDFAndEmail() {
         const element = document.getElementById('pdf-content');
         
-        // 检查是否有选餐
         if(document.getElementById('overview-list').innerText.includes('暂无选择')) {
             if(!confirm("您还没有选择任何菜品，确定要生成空白的PDF吗？")) return;
         }
@@ -636,57 +627,29 @@
             jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
         };
 
-        // 生成并下载 PDF
         html2pdf().set(opt).from(element).save().then(() => {
-            // PDF 下载触发后，询问是否发送邮件
             setTimeout(() => {
                 const confirmMail = confirm("✅ PDF 已生成并下载到您的设备！\n\n是否要打开邮件客户端发送邮件？\n(注意：您需要手动将刚刚下载的 PDF 添加为附件)");
                 if (confirmMail) {
                     const subject = encodeURIComponent("妈妈的菜单点餐单");
                     const body = encodeURIComponent("您好，\n\n这是本次的点餐单，请查收附件。\n\n(注：请手动附加刚刚下载的 PDF 文件)");
-                    // 打开默认邮件客户端
                     window.location.href = `mailto:?subject=${subject}&body=${body}`;
                 }
-            }, 500); // 稍微延迟，确保下载提示已弹出
+            }, 500); 
         });
     }
 
-    // === 全部复原（保留标签） ===
-    function resetAll() {
-        if (!confirm("确定要全部复原吗？\n\n✅ 菜单选项、自定义备注、已选状态将会清空。\n💡 您为菜品打好的早/中/晚标签会被保留。")) return;
+    // === 仅清空点餐（保留所有自定义设置） ===
+    function clearSelectionOnly() {
+        if (!confirm("确定要清空当前勾选的菜品和备注吗？\n\n💡 您添加的菜品、修改的菜名、选项、以及早中晚标签将全部保留。")) return;
 
-        // 1. 提取当前所有菜品的标签（用 id 映射）
-        const preservedTags = {};
-        menuData.forEach(dish => {
-            if (dish.tags && dish.tags.length > 0) {
-                preservedTags[dish.id] = [...dish.tags];
-            }
-        });
-
-        // 2. 重置菜单数据（加载默认）
-        menuData = JSON.parse(JSON.stringify(DEFAULT_MENU));
-        
-        // 3. 恢复标签
-        menuData.forEach(dish => {
-            if (preservedTags[dish.id]) {
-                dish.tags = preservedTags[dish.id];
-            } else {
-                dish.tags = [];
-            }
-        });
-
-        // 4. 清空选择和状态
+        // 清空点餐状态
         userSelection = {};
-        editingDishId = null;
-        activeFilters = [];
         
-        // 重置过滤按钮UI
-        ['breakfast', 'lunch', 'dinner'].forEach(t => {
-            const btn = document.getElementById(`filter-${t}`);
-            if (btn) btn.classList.remove('active');
-        });
+        // 强制退出正在编辑的状态
+        editingDishId = null;
 
-        // 5. 保存并重新渲染
+        // 保存并重新渲染
         saveToLocal();
         renderMenu();
         updateOverview();
