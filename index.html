@@ -14,6 +14,7 @@
             --border: #ddd;
             --danger: #e74c3c;
             --success: #2ecc71;
+            --warning: #f1c40f;
         }
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -62,6 +63,8 @@
             display: flex;
             justify-content: space-between;
             margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 10px;
         }
         button {
             padding: 8px 15px;
@@ -78,6 +81,8 @@
         .btn-secondary:hover { background-color: #2980b9; }
         .btn-danger { background-color: var(--danger); color: white; }
         .btn-danger:hover { background-color: #c0392b; }
+        .btn-warning { background-color: var(--warning); color: #333; }
+        .btn-warning:hover { background-color: #f39c12; }
         
         /* 菜单卡片 */
         .menu-item {
@@ -104,7 +109,7 @@
         .menu-title {
             font-size: 1.1em;
             font-weight: bold;
-            flex: 1; /* 让标题占据剩余空间 */
+            flex: 1;
         }
         /* 编辑模式下的修改菜名输入框 */
         .edit-name-input {
@@ -220,32 +225,66 @@
     <div class="controls">
         <button class="btn-primary" onclick="generatePDF()">📄 生成 PDF 菜单</button>
         <button class="btn-secondary" onclick="addNewDish()">➕ 添加新菜品</button>
+        <button class="btn-warning" onclick="resetAll()">🔄 全部复原</button>
     </div>
 
     <div id="menu-container"></div>
 </div>
 
 <script>
-    // 数据源
-    let menuData = [
-        { id: 'd1', name: '01. 中式汤面', type: 'radio', options: ['鸡肉', '肉臊子'] },
-        { id: 'd2', name: '02. 中式饺子', type: 'radio', options: ['蒸饺', '煎饺'] },
-        { id: 'd3', name: '03. 泡面', type: 'checkbox', options: ['鸡蛋', '肉臊子', '芝士'] },
-        { id: 'd4', name: '04. 美式松饼', type: 'radio', options: ['蜂蜜', '枫糖浆', '果酱'] },
-        { id: 'd5', name: '05. 玉米片/麦片', type: 'radio', options: ['玉米片', '麦片'] },
-        { id: 'd6', name: '02. 瑞典肉丸', type: 'radio', options: ['肉圆', '肉扁'] },
-        { id: 'd7', name: '01. 三文鱼寿司/刺身', type: 'radio', options: ['寿司', '刺身', '各半'] },
-        { id: 'd8', name: '05. 泰式咖喱', type: 'radio', options: ['海鲜', '鸡腿', '牛肉'] },
-        { id: 'd9', name: '10. 汉堡', type: 'checkbox', options: ['加芝士', '加培根'] },
-        { id: 'd10', name: '01. 薯条', type: 'radio', options: ['普通薯条', '薯格', '红薯条'] }
+    // 默认菜单数据（已去除数字序号）
+    const DEFAULT_MENU = [
+        { id: 'd1', name: '中式汤面', type: 'radio', options: ['鸡肉', '肉臊子'] },
+        { id: 'd2', name: '中式饺子', type: 'radio', options: ['蒸饺', '煎饺'] },
+        { id: 'd3', name: '泡面', type: 'checkbox', options: ['鸡蛋', '肉臊子', '芝士'] },
+        { id: 'd4', name: '美式松饼', type: 'radio', options: ['蜂蜜', '枫糖浆', '果酱'] },
+        { id: 'd5', name: '玉米片/麦片', type: 'radio', options: ['玉米片', '麦片'] },
+        { id: 'd6', name: '瑞典肉丸', type: 'radio', options: ['肉圆', '肉扁'] },
+        { id: 'd7', name: '三文鱼寿司/刺身', type: 'radio', options: ['寿司', '刺身', '各半'] },
+        { id: 'd8', name: '泰式咖喱', type: 'radio', options: ['海鲜', '鸡腿', '牛肉'] },
+        { id: 'd9', name: '汉堡', type: 'checkbox', options: ['加芝士', '加培根'] },
+        { id: 'd10', name: '薯条', type: 'radio', options: ['普通薯条', '薯格', '红薯条'] }
     ];
 
-    // 用户选择状态： { dishId: { selected: [], extras: [] } }
+    let menuData = [];
     let userSelection = {};
-    // 当前处于编辑模式的菜品 ID
     let editingDishId = null;
 
-    // 渲染菜单
+    // 本地存储的 Key
+    const STORAGE_KEY_MENU = 'mom_menu_data_v1';
+    const STORAGE_KEY_SELECTION = 'mom_menu_selection_v1';
+
+    // === 本地存储操作 ===
+    function saveToLocal() {
+        try {
+            localStorage.setItem(STORAGE_KEY_MENU, JSON.stringify(menuData));
+            localStorage.setItem(STORAGE_KEY_SELECTION, JSON.stringify(userSelection));
+        } catch (e) {
+            console.warn("本地存储失败，可能是浏览器隐私模式或空间不足", e);
+        }
+    }
+
+    function loadFromLocal() {
+        const savedMenu = localStorage.getItem(STORAGE_KEY_MENU);
+        const savedSelection = localStorage.getItem(STORAGE_KEY_SELECTION);
+
+        if (savedMenu) {
+            try {
+                menuData = JSON.parse(savedMenu);
+                userSelection = savedSelection ? JSON.parse(savedSelection) : {};
+            } catch (e) {
+                console.error("读取本地数据失败，使用默认数据", e);
+                menuData = JSON.parse(JSON.stringify(DEFAULT_MENU));
+                userSelection = {};
+            }
+        } else {
+            // 没有本地数据，用默认的
+            menuData = JSON.parse(JSON.stringify(DEFAULT_MENU));
+            userSelection = {};
+        }
+    }
+
+    // === 核心渲染 ===
     function renderMenu() {
         const container = document.getElementById('menu-container');
         container.innerHTML = '';
@@ -257,15 +296,9 @@
             const dishDiv = document.createElement('div');
             dishDiv.className = `menu-item ${isEditing ? 'editing-mode' : ''}`;
             
-            // 头部：标题和操作按钮
-            let titleHtml = '';
-            if (isEditing) {
-                // 如果在编辑模式，把标题变成输入框
-                titleHtml = `<input type="text" class="edit-name-input" id="edit-name-${dish.id}" value="${dish.name}" placeholder="输入菜品名称">`;
-            } else {
-                // 正常状态显示文字
-                titleHtml = `<div class="menu-title">${dish.name}</div>`;
-            }
+            let titleHtml = isEditing 
+                ? `<input type="text" class="edit-name-input" id="edit-name-${dish.id}" value="${dish.name}" placeholder="输入菜品名称">`
+                : `<div class="menu-title">${dish.name}</div>`;
 
             dishDiv.innerHTML = `
                 <div class="menu-header">
@@ -279,11 +312,9 @@
                 </div>
             `;
 
-            // 内容区域
             const contentDiv = document.createElement('div');
             
             if (isEditing) {
-                // === 编辑模式界面 ===
                 contentDiv.innerHTML = `
                     <div class="options-group">
                         <p>修改选项：</p>
@@ -317,7 +348,6 @@
                     </div>
                 `;
             } else {
-                // === 正常点餐界面 ===
                 let optionsHtml = `<div class="options-group"><p>请选择：</p>`;
                 dish.options.forEach((opt) => {
                     let isChecked = sel.selected.includes(opt);
@@ -358,7 +388,7 @@
         });
     }
 
-    // 处理选项点击（单选互斥及取消）
+    // === 业务逻辑 ===
     function handleOptionChange(dishId, value, isChecked) {
         const dish = menuData.find(d => d.id === dishId);
         if (!userSelection[dishId]) userSelection[dishId] = { selected: [], extras: [] };
@@ -381,32 +411,28 @@
                 userSelection[dishId].selected = userSelection[dishId].selected.filter(v => v !== value);
             }
         }
+        saveToLocal();
         updateOverview();
     }
 
-    // 切换编辑模式
     function toggleEdit(dishId) {
-        // 如果当前点击的是正在编辑的菜品，说明要保存退出
         if (editingDishId === dishId) {
-            // 获取输入框中的新名字
             const nameInput = document.getElementById(`edit-name-${dishId}`);
             if (nameInput) {
                 const newName = nameInput.value.trim();
                 if (newName) {
-                    // 更新数据源中的名字
                     const dish = menuData.find(d => d.id === dishId);
                     dish.name = newName;
                 }
             }
         }
         
-        // 切换状态并重新渲染
         editingDishId = editingDishId === dishId ? null : dishId;
+        saveToLocal();
         renderMenu();
-        updateOverview(); // 名字改变后，总览也要跟着变
+        updateOverview();
     }
 
-    // 删除选项
     function deleteOption(dishId, index) {
         const dish = menuData.find(d => d.id === dishId);
         const removedOpt = dish.options.splice(index, 1)[0];
@@ -415,11 +441,11 @@
             userSelection[dishId].selected = userSelection[dishId].selected.filter(v => v !== removedOpt);
         }
         
+        saveToLocal();
         renderMenu();
         updateOverview();
     }
 
-    // 添加选项
     function addOption(dishId) {
         const input = document.getElementById(`new-opt-${dishId}`);
         const val = input.value.trim();
@@ -429,17 +455,17 @@
         if (dish.options.includes(val)) return alert("该选项已存在");
         
         dish.options.push(val);
+        saveToLocal();
         renderMenu();
     }
 
-    // 删除备注
     function deleteExtra(dishId, index) {
         userSelection[dishId].extras.splice(index, 1);
+        saveToLocal();
         renderMenu();
         updateOverview();
     }
 
-    // 添加备注
     function addExtra(dishId) {
         const input = document.getElementById(`new-extra-${dishId}`) || document.getElementById(`quick-extra-${dishId}`);
         const val = input.value.trim();
@@ -448,11 +474,11 @@
         if (!userSelection[dishId]) userSelection[dishId] = { selected: [], extras: [] };
         userSelection[dishId].extras.push(val);
         
+        saveToLocal();
         renderMenu();
         updateOverview();
     }
 
-    // 删除整个菜品
     function deleteDish(dishId) {
         if (!confirm("确定要删除整个菜品吗？")) return;
         
@@ -460,29 +486,46 @@
         delete userSelection[dishId];
         if (editingDishId === dishId) editingDishId = null;
         
+        saveToLocal();
         renderMenu();
         updateOverview();
     }
 
-    // 更新总览
+    function addNewDish() {
+        const name = prompt("请输入新菜品的名称：");
+        if (!name) return;
+        
+        const optionStr = prompt("请输入该菜品的选项（用英文逗号分隔，如：微辣,中辣,特辣）：");
+        let options = optionStr ? optionStr.split(',').map(s => s.trim()).filter(s => s) : ['默认'];
+
+        menuData.push({
+            id: 'd' + Date.now(),
+            name: name,
+            type: 'radio',
+            options: options
+        });
+        
+        saveToLocal();
+        renderMenu();
+    }
+
+    // === 更新总览（去除数字序号） ===
     function updateOverview() {
         const list = document.getElementById('overview-list');
         list.innerHTML = '';
         let hasItem = false;
-        let count = 1;
 
         menuData.forEach(dish => {
             const sel = userSelection[dish.id];
             if (sel && (sel.selected.length > 0 || sel.extras.length > 0)) {
                 hasItem = true;
-                let text = `${count}. ${dish.name}`;
+                let text = `${dish.name}`;
                 if (sel.selected.length > 0) text += ` - 【${sel.selected.join('、')}】`;
                 if (sel.extras.length > 0) text += ` (备注: ${sel.extras.join(', ')})`;
                 
                 const li = document.createElement('li');
                 li.textContent = text;
                 list.appendChild(li);
-                count++;
             }
         });
 
@@ -491,7 +534,7 @@
         }
     }
 
-    // 生成 PDF
+    // === 生成 PDF ===
     function generatePDF() {
         const element = document.getElementById('pdf-content');
         const opt = {
@@ -504,25 +547,25 @@
         html2pdf().set(opt).from(element).save();
     }
 
-    // 添加整个新菜品
-    function addNewDish() {
-        const name = prompt("请输入新菜品的名称（如：06. 宫保鸡丁）：");
-        if (!name) return;
-        
-        const optionStr = prompt("请输入该菜品的选项（用英文逗号分隔，如：微辣,中辣,特辣）：");
-        let options = optionStr ? optionStr.split(',').map(s => s.trim()).filter(s => s) : ['默认'];
-
-        menuData.push({
-            id: 'd' + Date.now(),
-            name: name,
-            type: 'radio',
-            options: options
-        });
-        renderMenu();
+    // === 全部复原 ===
+    function resetAll() {
+        if (confirm("确定要全部复原吗？这会清除你所有添加的菜品、选项、备注和已选状态，恢复到初始菜单。")) {
+            localStorage.removeItem(STORAGE_KEY_MENU);
+            localStorage.removeItem(STORAGE_KEY_SELECTION);
+            
+            // 重新加载默认数据
+            menuData = JSON.parse(JSON.stringify(DEFAULT_MENU));
+            userSelection = {};
+            editingDishId = null;
+            
+            renderMenu();
+            updateOverview();
+        }
     }
 
     // 初始化
     window.onload = function() {
+        loadFromLocal();
         renderMenu();
         updateOverview();
     };
