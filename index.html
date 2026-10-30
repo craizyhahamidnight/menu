@@ -12,6 +12,8 @@
             --card-bg: #ffffff;
             --text: #333;
             --border: #ddd;
+            --danger: #e74c3c;
+            --success: #2ecc71;
         }
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -62,28 +64,21 @@
             margin-bottom: 20px;
         }
         button {
-            padding: 10px 15px;
+            padding: 8px 15px;
             border: none;
             border-radius: 5px;
             cursor: pointer;
             font-size: 1em;
             font-weight: bold;
-            transition: background 0.3s;
+            transition: all 0.3s;
         }
-        .btn-primary {
-            background-color: var(--primary);
-            color: white;
-        }
-        .btn-primary:hover {
-            background-color: #d35400;
-        }
-        .btn-secondary {
-            background-color: #3498db;
-            color: white;
-        }
-        .btn-secondary:hover {
-            background-color: #2980b9;
-        }
+        .btn-primary { background-color: var(--primary); color: white; }
+        .btn-primary:hover { background-color: #d35400; }
+        .btn-secondary { background-color: #3498db; color: white; }
+        .btn-secondary:hover { background-color: #2980b9; }
+        .btn-danger { background-color: var(--danger); color: white; }
+        .btn-danger:hover { background-color: #c0392b; }
+        
         /* 菜单卡片 */
         .menu-item {
             background: var(--card-bg);
@@ -92,6 +87,10 @@
             box-shadow: 0 2px 4px rgba(0,0,0,0.05);
             margin-bottom: 15px;
             position: relative;
+        }
+        .menu-item.editing-mode {
+            border: 2px dashed var(--primary);
+            background: #fffdf9;
         }
         .menu-header {
             display: flex;
@@ -105,31 +104,36 @@
             font-size: 1.1em;
             font-weight: bold;
         }
-        .edit-btn {
-            background: none;
-            border: none;
-            font-size: 1.2em;
-            cursor: pointer;
-            color: #888;
-            padding: 5px;
-            transition: transform 0.2s;
+        .header-actions {
+            display: flex;
+            gap: 10px;
         }
-        .edit-btn:hover {
-            color: var(--primary);
+        .icon-btn {
+            background: none;
+            padding: 5px;
+            font-size: 1.2em;
+            border-radius: 5px;
+        }
+        .icon-btn:hover {
+            background: rgba(0,0,0,0.05);
             transform: scale(1.1);
         }
+        .delete-dish-btn { color: var(--danger); }
+        
+        /* 选项组 */
         .options-group {
             margin-bottom: 15px;
         }
-        .options-group p {
+        .options-group p, .extras-group p {
             margin: 0 0 8px 0;
             font-size: 0.9em;
             color: #666;
             font-weight: bold;
         }
         .option-label {
-            display: inline-block;
-            margin-right: 15px;
+            display: inline-flex;
+            align-items: center;
+            margin-right: 10px;
             margin-bottom: 8px;
             cursor: pointer;
             background: #f4f4f4;
@@ -137,58 +141,56 @@
             border-radius: 20px;
             transition: background 0.2s;
         }
-        .option-label:hover {
-            background: #e0e0e0;
-        }
-        .option-label input {
-            margin-right: 5px;
-            accent-color: var(--primary);
-        }
-        /* 编辑弹窗/区域 */
-        .edit-area {
-            display: none;
-            margin-top: 10px;
-            padding-top: 10px;
-            border-top: 1px dashed var(--border);
-        }
-        .edit-area input[type="text"] {
-            padding: 8px;
-            border: 1px solid var(--border);
-            border-radius: 4px;
-            width: 60%;
-            margin-right: 10px;
-        }
-        .edit-area button {
-            padding: 8px 12px;
-            font-size: 0.9em;
-        }
-        .added-extras {
-            margin-top: 10px;
-            background: #fff9f0;
-            padding: 10px;
-            border-radius: 5px;
-            border: 1px dashed var(--primary);
-        }
-        .extra-item {
+        .option-label:hover { background: #e0e0e0; }
+        .option-label input { margin-right: 5px; accent-color: var(--primary); }
+        
+        /* 编辑模式下的选项列表 */
+        .edit-option-item {
             display: flex;
             align-items: center;
+            justify-content: space-between;
+            background: #fff;
+            border: 1px solid var(--border);
+            padding: 8px 12px;
+            border-radius: 5px;
             margin-bottom: 8px;
-            font-size: 0.95em;
         }
-        .extra-item span {
-            margin-right: 10px;
-            font-weight: bold;
-            color: var(--primary);
+        .edit-option-item span { font-weight: bold; }
+        .edit-option-item .icon-btn { color: var(--danger); font-size: 1em; }
+        
+        /* 附加备注 */
+        .extras-list {
+            margin-bottom: 10px;
         }
-        .action-btn {
-            background: none;
-            border: none;
-            cursor: pointer;
-            font-size: 1em;
-            padding: 2px 5px;
+        .extra-tag {
+            display: inline-flex;
+            align-items: center;
+            background: #e8f4f8;
+            color: #2980b9;
+            padding: 4px 10px;
+            border-radius: 15px;
+            margin-right: 8px;
+            margin-bottom: 8px;
+            font-size: 0.9em;
         }
-        .action-btn:hover {
-            transform: scale(1.2);
+        .extra-tag .icon-btn {
+            color: var(--danger);
+            font-size: 0.9em;
+            margin-left: 5px;
+            padding: 0 2px;
+        }
+        
+        /* 输入区 */
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .input-group input {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid var(--border);
+            border-radius: 5px;
         }
     </style>
 </head>
@@ -197,43 +199,38 @@
 <div class="container">
     <h1>妈妈的菜单</h1>
 
-    <!-- 总览区域 (PDF生成区域) -->
     <div class="overview-box" id="pdf-content">
         <div class="overview-title">📋 点餐总览</div>
-        <ul class="overview-list" id="overview-list">
-            <li style="color:#888; font-style:italic;">暂无选择...</li>
-        </ul>
+        <ul class="overview-list" id="overview-list"></ul>
     </div>
 
-    <!-- 操作按钮 -->
     <div class="controls">
         <button class="btn-primary" onclick="generatePDF()">📄 生成 PDF 菜单</button>
         <button class="btn-secondary" onclick="addNewDish()">➕ 添加新菜品</button>
     </div>
 
-    <!-- 菜单容器 -->
-    <div id="menu-container">
-        <!-- 菜单会由 JS 动态生成 -->
-    </div>
+    <div id="menu-container"></div>
 </div>
 
 <script>
-    // 初始菜单数据 (全中文)
+    // 数据源
     let menuData = [
-        { id: 'd1', name: '01. 中式汤面', type: 'radio', group: 'topping', options: ['鸡肉', '肉臊子'] },
-        { id: 'd2', name: '02. 中式饺子', type: 'radio', group: 'cooking', options: ['蒸饺', '煎饺'] },
-        { id: 'd3', name: '03. 泡面', type: 'checkbox', group: 'toppings', options: ['鸡蛋', '肉臊子', '芝士'] },
-        { id: 'd4', name: '04. 美式松饼', type: 'radio', group: 'topping', options: ['蜂蜜', '枫糖浆', '果酱'] },
-        { id: 'd5', name: '05. 玉米片/麦片', type: 'radio', group: 'cereal', options: ['玉米片', '麦片'] },
-        { id: 'd6', name: '02. 瑞典肉丸', type: 'radio', group: 'meat', options: ['肉圆', '肉扁'] },
-        { id: 'd7', name: '01. 三文鱼寿司/刺身', type: 'radio', group: 'style', options: ['寿司', '刺身', '各半'] },
-        { id: 'd8', name: '05. 泰式咖喱', type: 'radio', group: 'protein', options: ['海鲜', '鸡腿', '牛肉'] },
-        { id: 'd9', name: '10. 汉堡', type: 'checkbox', group: 'extras', options: ['加芝士', '加培根'] },
-        { id: 'd10', name: '01. 薯条', type: 'radio', group: 'fries', options: ['普通薯条', '薯格', '红薯条'] }
+        { id: 'd1', name: '01. 中式汤面', type: 'radio', options: ['鸡肉', '肉臊子'] },
+        { id: 'd2', name: '02. 中式饺子', type: 'radio', options: ['蒸饺', '煎饺'] },
+        { id: 'd3', name: '03. 泡面', type: 'checkbox', options: ['鸡蛋', '肉臊子', '芝士'] },
+        { id: 'd4', name: '04. 美式松饼', type: 'radio', options: ['蜂蜜', '枫糖浆', '果酱'] },
+        { id: 'd5', name: '05. 玉米片/麦片', type: 'radio', options: ['玉米片', '麦片'] },
+        { id: 'd6', name: '02. 瑞典肉丸', type: 'radio', options: ['肉圆', '肉扁'] },
+        { id: 'd7', name: '01. 三文鱼寿司/刺身', type: 'radio', options: ['寿司', '刺身', '各半'] },
+        { id: 'd8', name: '05. 泰式咖喱', type: 'radio', options: ['海鲜', '鸡腿', '牛肉'] },
+        { id: 'd9', name: '10. 汉堡', type: 'checkbox', options: ['加芝士', '加培根'] },
+        { id: 'd10', name: '01. 薯条', type: 'radio', options: ['普通薯条', '薯格', '红薯条'] }
     ];
 
-    // 存储用户的选择状态
+    // 用户选择状态： { dishId: { selected: [], extras: [] } }
     let userSelection = {};
+    // 当前处于编辑模式的菜品 ID
+    let editingDishId = null;
 
     // 渲染菜单
     function renderMenu() {
@@ -241,97 +238,201 @@
         container.innerHTML = '';
 
         menuData.forEach(dish => {
+            const sel = userSelection[dish.id] || { selected: [], extras: [] };
+            const isEditing = editingDishId === dish.id;
+            
             const dishDiv = document.createElement('div');
-            dishDiv.className = 'menu-item';
-            dishDiv.id = `dish-${dish.id}`;
-
-            // 初始化选中状态
-            let currentSel = userSelection[dish.id] || { selectedOption: '', extras: [] };
-
-            // 构建选项 HTML (不管单选多选，全用 checkbox，单选逻辑在 JS 里控制)
-            let optionsHTML = `<div class="options-group"><p>请选择：</p>`;
-            dish.options.forEach((opt) => {
-                // 判断是否被选中
-                let isChecked = false;
-                if (dish.type === 'radio') {
-                    if (currentSel.selectedOption === opt) isChecked = true;
-                } else {
-                    if (currentSel.selectedOption.includes(opt)) isChecked = true;
-                }
-
-                optionsHTML += `
-                    <label class="option-label">
-                        <input type="checkbox" name="dish_${dish.id}" value="${opt}" ${isChecked ? 'checked' : ''}
-                            onchange="updateSelection('${dish.id}', '${opt}', this.checked)">
-                        ${opt}
-                    </label>
-                `;
-            });
-            optionsHTML += `</div>`;
-
-            // 构建自定义附加项 HTML
-            let extrasHTML = '';
-            if (currentSel.extras && currentSel.extras.length > 0) {
-                extrasHTML = `<div class="added-extras" id="extras-${dish.id}"><p style="margin:0 0 10px 0; font-size:0.9em; color:#888;">已添加的附加项：</p>`;
-                currentSel.extras.forEach((extra, idx) => {
-                    extrasHTML += `
-                        <div class="extra-item">
-                            <span>✔ ${extra}</span>
-                            <button class="action-btn" onclick="editExtra('${dish.id}', ${idx})" title="修改">✏️</button>
-                            <button class="action-btn" onclick="deleteExtra('${dish.id}', ${idx})" title="删除">🗑️</button>
-                        </div>
-                    `;
-                });
-                extrasHTML += `</div>`;
-            }
-
+            dishDiv.className = `menu-item ${isEditing ? 'editing-mode' : ''}`;
+            
+            // 头部：标题和操作按钮
             dishDiv.innerHTML = `
                 <div class="menu-header">
                     <div class="menu-title">${dish.name}</div>
-                    <button class="edit-btn" onclick="toggleEdit('${dish.id}')" title="添加自定义附加项">✏️</button>
-                </div>
-                ${optionsHTML}
-                ${extrasHTML}
-                <!-- 添加附加项区域 -->
-                <div class="edit-area" id="edit-area-${dish.id}">
-                    <input type="text" id="input-${dish.id}" placeholder="输入自定义附加项，如: 加辣">
-                    <button class="btn-primary" onclick="addExtraToDish('${dish.id}')">添加</button>
+                    <div class="header-actions">
+                        <button class="icon-btn" onclick="toggleEdit('${dish.id}')" title="${isEditing ? '保存并退出' : '编辑选项'}">
+                            ${isEditing ? '✅' : '✏️'}
+                        </button>
+                        <button class="icon-btn delete-dish-btn" onclick="deleteDish('${dish.id}')" title="删除菜品">🗑️</button>
+                    </div>
                 </div>
             `;
 
+            // 内容区域
+            const contentDiv = document.createElement('div');
+            
+            if (isEditing) {
+                // === 编辑模式界面 ===
+                contentDiv.innerHTML = `
+                    <div class="options-group">
+                        <p>修改选项：</p>
+                        <div id="edit-options-${dish.id}">
+                            ${dish.options.map((opt, index) => `
+                                <div class="edit-option-item">
+                                    <span>${opt}</span>
+                                    <button class="icon-btn" onclick="deleteOption('${dish.id}', ${index})" title="删除此选项">🗑️</button>
+                                </div>
+                            `).join('')}
+                        </div>
+                        <div class="input-group">
+                            <input type="text" id="new-opt-${dish.id}" placeholder="输入新选项名称">
+                            <button class="btn-primary" onclick="addOption('${dish.id}')">添加选项</button>
+                        </div>
+                    </div>
+                    <div class="options-group" style="margin-top:20px; border-top:1px dashed #ccc; padding-top:15px;">
+                        <p>附加备注（如：加辣、少放盐）：</p>
+                        <div class="extras-list">
+                            ${sel.extras.map((extra, index) => `
+                                <span class="extra-tag">
+                                    ${extra}
+                                    <button class="icon-btn" onclick="deleteExtra('${dish.id}', ${index})" title="删除">×</button>
+                                </span>
+                            `).join('')}
+                        </div>
+                        <div class="input-group">
+                            <input type="text" id="new-extra-${dish.id}" placeholder="输入新的备注">
+                            <button class="btn-primary" onclick="addExtra('${dish.id}')">添加备注</button>
+                        </div>
+                    </div>
+                `;
+            } else {
+                // === 正常点餐界面 ===
+                let optionsHtml = `<div class="options-group"><p>请选择：</p>`;
+                dish.options.forEach((opt) => {
+                    let isChecked = sel.selected.includes(opt);
+                    optionsHtml += `
+                        <label class="option-label">
+                            <input type="checkbox" name="dish_${dish.id}" value="${opt}" ${isChecked ? 'checked' : ''}
+                                onchange="handleOptionChange('${dish.id}', '${opt}', this.checked)">
+                            ${opt}
+                        </label>
+                    `;
+                });
+                optionsHtml += `</div>`;
+
+                let extrasHtml = '';
+                if (sel.extras.length > 0) {
+                    extrasHtml = `<div class="extras-group"><p>已加备注：</p><div class="extras-list">`;
+                    sel.extras.forEach((extra, index) => {
+                        extrasHtml += `
+                            <span class="extra-tag">
+                                ${extra}
+                                <button class="icon-btn" onclick="deleteExtra('${dish.id}', ${index})" title="删除">×</button>
+                            </span>
+                        `;
+                    });
+                    extrasHtml += `</div></div>`;
+                }
+
+                contentDiv.innerHTML = optionsHtml + extrasHtml + `
+                    <div class="input-group" style="margin-top:10px;">
+                        <input type="text" id="quick-extra-${dish.id}" placeholder="添加特殊要求(如:不要香菜)">
+                        <button class="btn-secondary" onclick="addExtra('${dish.id}')">添加</button>
+                    </div>
+                `;
+            }
+
+            dishDiv.appendChild(contentDiv);
             container.appendChild(dishDiv);
         });
     }
 
-    // 更新选择状态
-    function updateSelection(dishId, value, isChecked) {
+    // 处理选项点击（单选互斥及取消）
+    function handleOptionChange(dishId, value, isChecked) {
         const dish = menuData.find(d => d.id === dishId);
-        if (!userSelection[dishId]) {
-            userSelection[dishId] = { selectedOption: '', extras: [] };
-        }
+        if (!userSelection[dishId]) userSelection[dishId] = { selected: [], extras: [] };
 
         if (dish.type === 'radio') {
-            // 单选逻辑
             if (isChecked) {
-                // 如果选中，先取消同组其他项的勾选
+                userSelection[dishId].selected = [value];
+                // 如果这是单选，界面上把其他的勾选去掉
                 document.querySelectorAll(`input[name="dish_${dishId}"]`).forEach(cb => {
                     if (cb.value !== value) cb.checked = false;
                 });
-                userSelection[dishId].selectedOption = value;
             } else {
-                // 取消勾选
-                userSelection[dishId].selectedOption = '';
+                userSelection[dishId].selected = [];
             }
         } else {
-            // 多选逻辑
-            const checkedValues = Array.from(document.querySelectorAll(`input[name="dish_${dishId}"]:checked`)).map(el => el.value);
-            userSelection[dishId].selectedOption = checkedValues.join('、');
+            if (isChecked) {
+                if (!userSelection[dishId].selected.includes(value)) {
+                    userSelection[dishId].selected.push(value);
+                }
+            } else {
+                userSelection[dishId].selected = userSelection[dishId].selected.filter(v => v !== value);
+            }
         }
-        
         updateOverview();
     }
 
-    // 更新顶部总览
+    // 切换编辑模式
+    function toggleEdit(dishId) {
+        editingDishId = editingDishId === dishId ? null : dishId;
+        renderMenu();
+    }
+
+    // 删除选项
+    function deleteOption(dishId, index) {
+        const dish = menuData.find(d => d.id === dishId);
+        const removedOpt = dish.options.splice(index, 1)[0];
+        
+        // 如果用户之前选了这个选项，也要从选中记录里删掉
+        if (userSelection[dishId] && userSelection[dishId].selected) {
+            userSelection[dishId].selected = userSelection[dishId].selected.filter(v => v !== removedOpt);
+        }
+        
+        renderMenu();
+        updateOverview();
+    }
+
+    // 添加选项
+    function addOption(dishId) {
+        const input = document.getElementById(`new-opt-${dishId}`);
+        const val = input.value.trim();
+        if (!val) return alert("请输入选项内容");
+        
+        const dish = menuData.find(d => d.id === dishId);
+        if (dish.options.includes(val)) return alert("该选项已存在");
+        
+        dish.options.push(val);
+        renderMenu();
+    }
+
+    // 删除备注
+    function deleteExtra(dishId, index) {
+        userSelection[dishId].extras.splice(index, 1);
+        renderMenu();
+        updateOverview();
+    }
+
+    // 添加备注
+    function addExtra(dishId) {
+        // 兼容两种输入框ID（编辑模式 / 正常模式）
+        const input = document.getElementById(`new-extra-${dishId}`) || document.getElementById(`quick-extra-${dishId}`);
+        const val = input.value.trim();
+        if (!val) return;
+
+        if (!userSelection[dishId]) userSelection[dishId] = { selected: [], extras: [] };
+        userSelection[dishId].extras.push(val);
+        
+        renderMenu();
+        updateOverview();
+    }
+
+    // 删除整个菜品
+    function deleteDish(dishId) {
+        if (!confirm("确定要删除整个菜品吗？")) return;
+        
+        // 从菜单数组中删除
+        menuData = menuData.filter(d => d.id !== dishId);
+        // 清除用户对这个菜品的选餐记录
+        delete userSelection[dishId];
+        // 如果正好在编辑这个菜品，退出编辑状态
+        if (editingDishId === dishId) editingDishId = null;
+        
+        renderMenu();
+        updateOverview();
+    }
+
+    // 更新总览
     function updateOverview() {
         const list = document.getElementById('overview-list');
         list.innerHTML = '';
@@ -340,13 +441,11 @@
 
         menuData.forEach(dish => {
             const sel = userSelection[dish.id];
-            if (sel && (sel.selectedOption || (sel.extras && sel.extras.length > 0))) {
+            if (sel && (sel.selected.length > 0 || sel.extras.length > 0)) {
                 hasItem = true;
                 let text = `${count}. ${dish.name}`;
-                if (sel.selectedOption) text += ` - 【${sel.selectedOption}】`;
-                if (sel.extras && sel.extras.length > 0) {
-                    text += ` (附加: ${sel.extras.join(', ')})`;
-                }
+                if (sel.selected.length > 0) text += ` - 【${sel.selected.join('、')}】`;
+                if (sel.extras.length > 0) text += ` (备注: ${sel.extras.join(', ')})`;
                 
                 const li = document.createElement('li');
                 li.textContent = text;
@@ -373,72 +472,20 @@
         html2pdf().set(opt).from(element).save();
     }
 
-    // 显示/隐藏编辑区域
-    function toggleEdit(dishId) {
-        const area = document.getElementById(`edit-area-${dishId}`);
-        area.style.display = area.style.display === 'block' ? 'none' : 'block';
-    }
-
-    // 添加自定义附加项
-    function addExtraToDish(dishId) {
-        const input = document.getElementById(`input-${dishId}`);
-        const value = input.value.trim();
-        if (!value) return;
-
-        if (!userSelection[dishId]) {
-            userSelection[dishId] = { selectedOption: '', extras: [] };
-        }
-        userSelection[dishId].extras.push(value);
-
-        input.value = ''; 
-        document.getElementById(`edit-area-${dishId}`).style.display = 'none';
-        
-        renderMenu(); // 重新渲染以显示删除/修改按钮
-        updateOverview();
-    }
-
-    // 修改自定义附加项
-    function editExtra(dishId, index) {
-        const currentVal = userSelection[dishId].extras[index];
-        const newVal = prompt("请输入修改后的附加项名称：", currentVal);
-        if (newVal !== null && newVal.trim() !== '') {
-            userSelection[dishId].extras[index] = newVal.trim();
-            renderMenu();
-            updateOverview();
-        }
-    }
-
-    // 删除自定义附加项
-    function deleteExtra(dishId, index) {
-        if (confirm("确定要删除这个附加项吗？")) {
-            userSelection[dishId].extras.splice(index, 1);
-            renderMenu();
-            updateOverview();
-        }
-    }
-
     // 添加整个新菜品
     function addNewDish() {
-        const name = prompt("请输入新菜品的名称（例如：06. 宫保鸡丁）：");
+        const name = prompt("请输入新菜品的名称（如：06. 宫保鸡丁）：");
         if (!name) return;
         
         const optionStr = prompt("请输入该菜品的选项（用英文逗号分隔，如：微辣,中辣,特辣）：");
-        let options = [];
-        if (optionStr) {
-            options = optionStr.split(',').map(s => s.trim()).filter(s => s);
-        } else {
-            options = ['默认'];
-        }
+        let options = optionStr ? optionStr.split(',').map(s => s.trim()).filter(s => s) : ['默认'];
 
-        const newDish = {
-            id: 'd' + (Date.now()), // 使用时间戳避免ID重复
+        menuData.push({
+            id: 'd' + Date.now(),
             name: name,
             type: 'radio',
-            group: 'custom',
             options: options
-        };
-
-        menuData.push(newDish);
+        });
         renderMenu();
     }
 
