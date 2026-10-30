@@ -99,6 +99,7 @@
             align-items: center;
             gap: 10px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            flex-wrap: wrap; /* 允许换行 */
         }
         .filter-label { font-weight: bold; margin-right: 10px; }
         .filter-btn {
@@ -170,6 +171,7 @@
             gap: 10px;
             border-bottom: 1px dashed #eee;
             padding-bottom: 10px;
+            flex-wrap: wrap; /* 允许标签换行 */
         }
         .tag-btn {
             background: var(--tag-bg);
@@ -269,12 +271,13 @@
         <button class="btn-warning" onclick="clearSelectionOnly()">🗑️ 仅清空点餐</button>
     </div>
 
-    <!-- 过滤器区域 -->
+    <!-- 过滤器区域 (新增小吃) -->
     <div class="filter-bar">
         <span class="filter-label">筛选时段：</span>
         <button class="filter-btn" onclick="toggleFilter('breakfast')" id="filter-breakfast">🌅 早饭</button>
         <button class="filter-btn" onclick="toggleFilter('lunch')" id="filter-lunch">☀️ 午饭</button>
         <button class="filter-btn" onclick="toggleFilter('dinner')" id="filter-dinner">🌙 晚饭</button>
+        <button class="filter-btn" onclick="toggleFilter('snack')" id="filter-snack">🍿 小吃</button>
     </div>
 
     <div id="menu-container"></div>
@@ -336,10 +339,13 @@
         } else {
             activeFilters.push(tag);
         }
-        ['breakfast', 'lunch', 'dinner'].forEach(t => {
+        // 更新按钮 UI，加入 snack
+        ['breakfast', 'lunch', 'dinner', 'snack'].forEach(t => {
             const btn = document.getElementById(`filter-${t}`);
-            if (activeFilters.includes(t)) btn.classList.add('active');
-            else btn.classList.remove('active');
+            if (btn) {
+                if (activeFilters.includes(t)) btn.classList.add('active');
+                else btn.classList.remove('active');
+            }
         });
         renderMenu();
     }
@@ -370,11 +376,13 @@
                 ? `<input type="text" class="edit-name-input" id="edit-name-${dish.id}" value="${dish.name}" placeholder="输入菜品名称">`
                 : `<div class="menu-title">${dish.name}</div>`;
 
+            // 标签渲染区 (新增小吃)
             const tagHtml = `
                 <div class="tags-group">
                     <button class="tag-btn ${dish.tags.includes('breakfast') ? 'active' : ''}" onclick="toggleDishTag('${dish.id}', 'breakfast')">🌅 早饭</button>
                     <button class="tag-btn ${dish.tags.includes('lunch') ? 'active' : ''}" onclick="toggleDishTag('${dish.id}', 'lunch')">☀️ 午饭</button>
                     <button class="tag-btn ${dish.tags.includes('dinner') ? 'active' : ''}" onclick="toggleDishTag('${dish.id}', 'dinner')">🌙 晚饭</button>
+                    <button class="tag-btn ${dish.tags.includes('snack') ? 'active' : ''}" onclick="toggleDishTag('${dish.id}', 'snack')">🍿 小吃</button>
                 </div>
             `;
 
@@ -483,12 +491,10 @@
         if (!userSelection[dishId]) userSelection[dishId] = { selected: [], extras: [] };
 
         if (isChecked) {
-            // 如果选中，且数组里还没有，就加进去
             if (!userSelection[dishId].selected.includes(value)) {
                 userSelection[dishId].selected.push(value);
             }
         } else {
-            // 如果取消，就从数组里过滤掉
             userSelection[dishId].selected = userSelection[dishId].selected.filter(v => v !== value);
         }
         
@@ -572,7 +578,7 @@
         menuData.push({
             id: 'd' + Date.now(),
             name: name,
-            type: 'checkbox', // 新建默认给 checkbox
+            type: 'checkbox',
             options: options,
             tags: []
         });
@@ -633,9 +639,17 @@
 
     // === 仅清空点餐（保留所有自定义设置） ===
     function clearSelectionOnly() {
-        if (!confirm("确定要清空当前勾选的菜品和备注吗？\n\n💡 您添加的菜品、修改的菜名、选项、以及早中晚标签将全部保留。")) return;
+        if (!confirm("确定要清空当前勾选的菜品和备注吗？\n\n💡 您添加的菜品、修改的菜名、选项、以及所有标签将全部保留。")) return;
         userSelection = {};
         editingDishId = null;
+        
+        // 同时也把过滤器的 UI 重置一下（但不改变菜品本身的标签）
+        activeFilters = [];
+        ['breakfast', 'lunch', 'dinner', 'snack'].forEach(t => {
+            const btn = document.getElementById(`filter-${t}`);
+            if (btn) btn.classList.remove('active');
+        });
+
         saveToLocal();
         renderMenu();
         updateOverview();
