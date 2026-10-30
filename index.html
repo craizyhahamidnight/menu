@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mom's Menu 电子点餐系统</title>
-    <!-- 引入 html2pdf 库用于生成 PDF -->
+    <title>妈妈的菜单 - 电子点餐系统</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
         :root {
@@ -52,7 +51,7 @@
         }
         .overview-list li {
             margin-bottom: 5px;
-            padding: 5px;
+            padding: 8px;
             background: #f0f0f0;
             border-radius: 4px;
         }
@@ -113,9 +112,11 @@
             cursor: pointer;
             color: #888;
             padding: 5px;
+            transition: transform 0.2s;
         }
         .edit-btn:hover {
             color: var(--primary);
+            transform: scale(1.1);
         }
         .options-group {
             margin-bottom: 15px;
@@ -129,8 +130,15 @@
         .option-label {
             display: inline-block;
             margin-right: 15px;
-            margin-bottom: 5px;
+            margin-bottom: 8px;
             cursor: pointer;
+            background: #f4f4f4;
+            padding: 6px 12px;
+            border-radius: 20px;
+            transition: background 0.2s;
+        }
+        .option-label:hover {
+            background: #e0e0e0;
         }
         .option-label input {
             margin-right: 5px;
@@ -156,26 +164,50 @@
         }
         .added-extras {
             margin-top: 10px;
+            background: #fff9f0;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px dashed var(--primary);
+        }
+        .extra-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 0.95em;
+        }
+        .extra-item span {
+            margin-right: 10px;
+            font-weight: bold;
+            color: var(--primary);
+        }
+        .action-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1em;
+            padding: 2px 5px;
+        }
+        .action-btn:hover {
+            transform: scale(1.2);
         }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>Mom's Menu</h1>
+    <h1>妈妈的菜单</h1>
 
     <!-- 总览区域 (PDF生成区域) -->
     <div class="overview-box" id="pdf-content">
-        <div class="overview-title">📋 订单总览 (Overview)</div>
+        <div class="overview-title">📋 点餐总览</div>
         <ul class="overview-list" id="overview-list">
-            <!-- 选中项会在这里生成 -->
             <li style="color:#888; font-style:italic;">暂无选择...</li>
         </ul>
     </div>
 
     <!-- 操作按钮 -->
     <div class="controls">
-        <button class="btn-primary" onclick="generatePDF()">📄 生成 PDF</button>
+        <button class="btn-primary" onclick="generatePDF()">📄 生成 PDF 菜单</button>
         <button class="btn-secondary" onclick="addNewDish()">➕ 添加新菜品</button>
     </div>
 
@@ -186,81 +218,21 @@
 </div>
 
 <script>
-    // 初始菜单数据 (根据 PDF 提取并整理)
+    // 初始菜单数据 (全中文)
     let menuData = [
-        {
-            id: 'd1',
-            name: '01. 中式汤面 (Chinese Noodle Soup)',
-            type: 'radio',
-            group: 'topping',
-            options: ['鸡肉 (Chicken)', '肉酱 (Minced beef)']
-        },
-        {
-            id: 'd2',
-            name: '02. 中式饺子 (Chinese Dumplings)',
-            type: 'radio',
-            group: 'cooking',
-            options: ['蒸饺 (Steamed)', '煎饺 (Pan-fried)']
-        },
-        {
-            id: 'd3',
-            name: '03. 泡面 (Instant Ramen)',
-            type: 'checkbox',
-            group: 'toppings',
-            options: ['鸡蛋 (Egg)', '肉酱 (Minced beef)', '芝士 (Cheese)']
-        },
-        {
-            id: 'd4',
-            name: '04. 美式松饼 (Fluffy Pancakes)',
-            type: 'radio',
-            group: 'topping',
-            options: ['蜂蜜 (Honey)', '枫糖浆 (Maple syrup)', '果酱 (Jam)']
-        },
-        {
-            id: 'd5',
-            name: '05. 玉米片/麦片 (Cereal Bowl)',
-            type: 'radio',
-            group: 'cereal',
-            options: ['玉米片 (Cornflakes)', '麦片 (Oats/Muesli)']
-        },
-        {
-            id: 'd6',
-            name: '02. 瑞典肉丸 (Swedish Meatballs)', // 特别加入肉圆/肉扁
-            type: 'radio',
-            group: 'meat',
-            options: ['肉圆 (Meatball)', '肉扁 (Meatflat)']
-        },
-        {
-            id: 'd7',
-            name: '01. 三文鱼寿司/刺身 (Salmon Sushi & Sashimi)',
-            type: 'radio',
-            group: 'style',
-            options: ['寿司 (Sushi)', '刺身 (Sashimi)', '各半 (Half/Half)']
-        },
-        {
-            id: 'd8',
-            name: '05. 泰式咖喱 (Thai Curry)',
-            type: 'radio',
-            group: 'protein',
-            options: ['海鲜 (Seafood)', '鸡腿 (Chicken thigh)', '牛肉 (Beef)']
-        },
-        {
-            id: 'd9',
-            name: '10. Bad Homburg 汉堡 (Signature Cheeseburger)',
-            type: 'checkbox',
-            group: 'extras',
-            options: ['加芝士 (Extra Cheese)', '加培根 (Bacon)']
-        },
-        {
-            id: 'd10',
-            name: '01. 薯条 (Fries Your Way)',
-            type: 'radio',
-            group: 'fries',
-            options: ['普通薯条 (Classic)', '薯格 (Waffle)', '红薯条 (Sweet Potato)']
-        }
+        { id: 'd1', name: '01. 中式汤面', type: 'radio', group: 'topping', options: ['鸡肉', '肉臊子'] },
+        { id: 'd2', name: '02. 中式饺子', type: 'radio', group: 'cooking', options: ['蒸饺', '煎饺'] },
+        { id: 'd3', name: '03. 泡面', type: 'checkbox', group: 'toppings', options: ['鸡蛋', '肉臊子', '芝士'] },
+        { id: 'd4', name: '04. 美式松饼', type: 'radio', group: 'topping', options: ['蜂蜜', '枫糖浆', '果酱'] },
+        { id: 'd5', name: '05. 玉米片/麦片', type: 'radio', group: 'cereal', options: ['玉米片', '麦片'] },
+        { id: 'd6', name: '02. 瑞典肉丸', type: 'radio', group: 'meat', options: ['肉圆', '肉扁'] },
+        { id: 'd7', name: '01. 三文鱼寿司/刺身', type: 'radio', group: 'style', options: ['寿司', '刺身', '各半'] },
+        { id: 'd8', name: '05. 泰式咖喱', type: 'radio', group: 'protein', options: ['海鲜', '鸡腿', '牛肉'] },
+        { id: 'd9', name: '10. 汉堡', type: 'checkbox', group: 'extras', options: ['加芝士', '加培根'] },
+        { id: 'd10', name: '01. 薯条', type: 'radio', group: 'fries', options: ['普通薯条', '薯格', '红薯条'] }
     ];
 
-    // 存储用户的选择状态: { dishId: { selectedOption: '...', extras: [...] } }
+    // 存储用户的选择状态
     let userSelection = {};
 
     // 渲染菜单
@@ -273,34 +245,56 @@
             dishDiv.className = 'menu-item';
             dishDiv.id = `dish-${dish.id}`;
 
-            // 构建选项 HTML
-            let optionsHTML = `<div class="options-group"><p>Choose your option:</p>`;
-            dish.options.forEach((opt, index) => {
-                const inputType = dish.type;
-                const nameAttr = `dish_${dish.id}`;
+            // 初始化选中状态
+            let currentSel = userSelection[dish.id] || { selectedOption: '', extras: [] };
+
+            // 构建选项 HTML (不管单选多选，全用 checkbox，单选逻辑在 JS 里控制)
+            let optionsHTML = `<div class="options-group"><p>请选择：</p>`;
+            dish.options.forEach((opt) => {
+                // 判断是否被选中
+                let isChecked = false;
+                if (dish.type === 'radio') {
+                    if (currentSel.selectedOption === opt) isChecked = true;
+                } else {
+                    if (currentSel.selectedOption.includes(opt)) isChecked = true;
+                }
+
                 optionsHTML += `
                     <label class="option-label">
-                        <input type="${inputType}" name="${nameAttr}" value="${opt}" 
-                            onchange="updateSelection('${dish.id}', '${opt}', '${inputType}')">
+                        <input type="checkbox" name="dish_${dish.id}" value="${opt}" ${isChecked ? 'checked' : ''}
+                            onchange="updateSelection('${dish.id}', '${opt}', this.checked)">
                         ${opt}
                     </label>
                 `;
             });
             optionsHTML += `</div>`;
 
-            // 自定义附加项容器
-            let extrasHTML = `<div class="added-extras" id="extras-${dish.id}"></div>`;
+            // 构建自定义附加项 HTML
+            let extrasHTML = '';
+            if (currentSel.extras && currentSel.extras.length > 0) {
+                extrasHTML = `<div class="added-extras" id="extras-${dish.id}"><p style="margin:0 0 10px 0; font-size:0.9em; color:#888;">已添加的附加项：</p>`;
+                currentSel.extras.forEach((extra, idx) => {
+                    extrasHTML += `
+                        <div class="extra-item">
+                            <span>✔ ${extra}</span>
+                            <button class="action-btn" onclick="editExtra('${dish.id}', ${idx})" title="修改">✏️</button>
+                            <button class="action-btn" onclick="deleteExtra('${dish.id}', ${idx})" title="删除">🗑️</button>
+                        </div>
+                    `;
+                });
+                extrasHTML += `</div>`;
+            }
 
             dishDiv.innerHTML = `
                 <div class="menu-header">
                     <div class="menu-title">${dish.name}</div>
-                    <button class="edit-btn" onclick="toggleEdit('${dish.id}')" title="添加附加项">✏️</button>
+                    <button class="edit-btn" onclick="toggleEdit('${dish.id}')" title="添加自定义附加项">✏️</button>
                 </div>
                 ${optionsHTML}
                 ${extrasHTML}
-                <!-- 编辑区域 -->
+                <!-- 添加附加项区域 -->
                 <div class="edit-area" id="edit-area-${dish.id}">
-                    <input type="text" id="input-${dish.id}" placeholder="输入自定义附加项 (如: 加辣)">
+                    <input type="text" id="input-${dish.id}" placeholder="输入自定义附加项，如: 加辣">
                     <button class="btn-primary" onclick="addExtraToDish('${dish.id}')">添加</button>
                 </div>
             `;
@@ -310,36 +304,30 @@
     }
 
     // 更新选择状态
-    function updateSelection(dishId, value, type) {
+    function updateSelection(dishId, value, isChecked) {
+        const dish = menuData.find(d => d.id === dishId);
         if (!userSelection[dishId]) {
             userSelection[dishId] = { selectedOption: '', extras: [] };
         }
 
-        if (type === 'radio') {
-            userSelection[dishId].selectedOption = value;
-        } else if (type === 'checkbox') {
-            // 对于复选框，记录选中的值
-            userSelection[dishId].selectedOption = value; // 简化处理，单个勾选会覆盖，但实际显示时解析
-        }
-        
-        updateOverview();
-    }
-
-    // 处理复选框多选
-    const originalUpdateSelection = updateSelection;
-    updateSelection = function(dishId, value, type) {
-        if (!userSelection[dishId]) {
-            userSelection[dishId] = { selectedOption: '', extras: [] };
-        }
-        
-        if (type === 'radio') {
-            userSelection[dishId].selectedOption = value;
-        } else if (type === 'checkbox') {
-            const dish = menuData.find(d => d.id === dishId);
-            // 获取该组所有勾选的
+        if (dish.type === 'radio') {
+            // 单选逻辑
+            if (isChecked) {
+                // 如果选中，先取消同组其他项的勾选
+                document.querySelectorAll(`input[name="dish_${dishId}"]`).forEach(cb => {
+                    if (cb.value !== value) cb.checked = false;
+                });
+                userSelection[dishId].selectedOption = value;
+            } else {
+                // 取消勾选
+                userSelection[dishId].selectedOption = '';
+            }
+        } else {
+            // 多选逻辑
             const checkedValues = Array.from(document.querySelectorAll(`input[name="dish_${dishId}"]:checked`)).map(el => el.value);
-            userSelection[dishId].selectedOption = checkedValues.join(', ');
+            userSelection[dishId].selectedOption = checkedValues.join('、');
         }
+        
         updateOverview();
     }
 
@@ -355,7 +343,7 @@
             if (sel && (sel.selectedOption || (sel.extras && sel.extras.length > 0))) {
                 hasItem = true;
                 let text = `${count}. ${dish.name}`;
-                if (sel.selectedOption) text += ` - ${sel.selectedOption}`;
+                if (sel.selectedOption) text += ` - 【${sel.selectedOption}】`;
                 if (sel.extras && sel.extras.length > 0) {
                     text += ` (附加: ${sel.extras.join(', ')})`;
                 }
@@ -377,7 +365,7 @@
         const element = document.getElementById('pdf-content');
         const opt = {
             margin:       0.5,
-            filename:     'Moms_Menu_Order.pdf',
+            filename:     '妈妈的菜单_点餐单.pdf',
             image:        { type: 'jpeg', quality: 0.98 },
             html2canvas:  { scale: 2 },
             jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
@@ -388,47 +376,53 @@
     // 显示/隐藏编辑区域
     function toggleEdit(dishId) {
         const area = document.getElementById(`edit-area-${dishId}`);
-        if (area.style.display === 'block') {
-            area.style.display = 'none';
-        } else {
-            area.style.display = 'block';
-        }
+        area.style.display = area.style.display === 'block' ? 'none' : 'block';
     }
 
-    // 为特定菜品添加附加项
+    // 添加自定义附加项
     function addExtraToDish(dishId) {
         const input = document.getElementById(`input-${dishId}`);
         const value = input.value.trim();
         if (!value) return;
 
-        // 更新数据模型
         if (!userSelection[dishId]) {
             userSelection[dishId] = { selectedOption: '', extras: [] };
         }
         userSelection[dishId].extras.push(value);
 
-        // 更新 UI (在附加项容器中生成复选框)
-        const extrasContainer = document.getElementById(`extras-${dishId}`);
-        const label = document.createElement('label');
-        label.className = 'option-label';
-        label.innerHTML = `
-            <input type="checkbox" checked disabled> 
-            <span style="color:var(--primary); font-weight:bold;">${value} (自定义附加)</span>
-        `;
-        extrasContainer.appendChild(label);
-
-        input.value = ''; // 清空输入框
-        document.getElementById(`edit-area-${dishId}`).style.display = 'none'; // 隐藏编辑区
+        input.value = ''; 
+        document.getElementById(`edit-area-${dishId}`).style.display = 'none';
         
+        renderMenu(); // 重新渲染以显示删除/修改按钮
         updateOverview();
+    }
+
+    // 修改自定义附加项
+    function editExtra(dishId, index) {
+        const currentVal = userSelection[dishId].extras[index];
+        const newVal = prompt("请输入修改后的附加项名称：", currentVal);
+        if (newVal !== null && newVal.trim() !== '') {
+            userSelection[dishId].extras[index] = newVal.trim();
+            renderMenu();
+            updateOverview();
+        }
+    }
+
+    // 删除自定义附加项
+    function deleteExtra(dishId, index) {
+        if (confirm("确定要删除这个附加项吗？")) {
+            userSelection[dishId].extras.splice(index, 1);
+            renderMenu();
+            updateOverview();
+        }
     }
 
     // 添加整个新菜品
     function addNewDish() {
-        const name = prompt("请输入新菜品的名称 (例如: 06. 宫保鸡丁):");
+        const name = prompt("请输入新菜品的名称（例如：06. 宫保鸡丁）：");
         if (!name) return;
         
-        const optionStr = prompt("请输入该菜品的选项 (用英文逗号分隔，如: 微辣,中辣,特辣):");
+        const optionStr = prompt("请输入该菜品的选项（用英文逗号分隔，如：微辣,中辣,特辣）：");
         let options = [];
         if (optionStr) {
             options = optionStr.split(',').map(s => s.trim()).filter(s => s);
@@ -437,7 +431,7 @@
         }
 
         const newDish = {
-            id: 'd' + (menuData.length + 1),
+            id: 'd' + (Date.now()), // 使用时间戳避免ID重复
             name: name,
             type: 'radio',
             group: 'custom',
