@@ -15,6 +15,8 @@
             --danger: #e74c3c;
             --success: #2ecc71;
             --warning: #f1c40f;
+            --tag-bg: #eee;
+            --tag-active: #3498db;
         }
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -66,6 +68,11 @@
             flex-wrap: wrap;
             gap: 10px;
         }
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
         button {
             padding: 8px 15px;
             border: none;
@@ -79,11 +86,34 @@
         .btn-primary:hover { background-color: #d35400; }
         .btn-secondary { background-color: #3498db; color: white; }
         .btn-secondary:hover { background-color: #2980b9; }
-        .btn-danger { background-color: var(--danger); color: white; }
-        .btn-danger:hover { background-color: #c0392b; }
         .btn-warning { background-color: var(--warning); color: #333; }
         .btn-warning:hover { background-color: #f39c12; }
         
+        /* 过滤器 */
+        .filter-bar {
+            background: #fff;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .filter-label { font-weight: bold; margin-right: 10px; }
+        .filter-btn {
+            background: var(--tag-bg);
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 5px 15px;
+        }
+        .filter-btn.active {
+            background: var(--tag-active);
+            color: white;
+            border-color: var(--tag-active);
+        }
+
         /* 菜单卡片 */
         .menu-item {
             background: var(--card-bg);
@@ -111,7 +141,6 @@
             font-weight: bold;
             flex: 1;
         }
-        /* 编辑模式下的修改菜名输入框 */
         .edit-name-input {
             width: 95%;
             padding: 8px;
@@ -120,7 +149,6 @@
             border: 1px solid var(--primary);
             border-radius: 5px;
             background: #fff;
-            color: var(--text);
         }
         .header-actions {
             display: flex;
@@ -132,16 +160,34 @@
             font-size: 1.2em;
             border-radius: 5px;
         }
-        .icon-btn:hover {
-            background: rgba(0,0,0,0.05);
-            transform: scale(1.1);
-        }
+        .icon-btn:hover { background: rgba(0,0,0,0.05); transform: scale(1.1); }
         .delete-dish-btn { color: var(--danger); }
         
-        /* 选项组 */
-        .options-group {
+        /* 标签区域 */
+        .tags-group {
             margin-bottom: 15px;
+            display: flex;
+            gap: 10px;
+            border-bottom: 1px dashed #eee;
+            padding-bottom: 10px;
         }
+        .tag-btn {
+            background: var(--tag-bg);
+            color: #666;
+            border: 1px solid transparent;
+            border-radius: 20px;
+            padding: 6px 15px;
+            font-size: 0.9em;
+            user-select: none;
+        }
+        .tag-btn.active {
+            background: var(--tag-active);
+            color: white;
+            box-shadow: 0 2px 5px rgba(52, 152, 219, 0.4);
+        }
+
+        /* 选项组 */
+        .options-group { margin-bottom: 15px; }
         .options-group p, .extras-group p {
             margin: 0 0 8px 0;
             font-size: 0.9em;
@@ -162,7 +208,6 @@
         .option-label:hover { background: #e0e0e0; }
         .option-label input { margin-right: 5px; accent-color: var(--primary); }
         
-        /* 编辑模式下的选项列表 */
         .edit-option-item {
             display: flex;
             align-items: center;
@@ -177,9 +222,7 @@
         .edit-option-item .icon-btn { color: var(--danger); font-size: 1em; }
         
         /* 附加备注 */
-        .extras-list {
-            margin-bottom: 10px;
-        }
+        .extras-list { margin-bottom: 10px; }
         .extra-tag {
             display: inline-flex;
             align-items: center;
@@ -199,11 +242,7 @@
         }
         
         /* 输入区 */
-        .input-group {
-            display: flex;
-            gap: 10px;
-            margin-top: 10px;
-        }
+        .input-group { display: flex; gap: 10px; margin-top: 10px; }
         .input-group input {
             flex: 1;
             padding: 8px;
@@ -223,45 +262,52 @@
     </div>
 
     <div class="controls">
-        <button class="btn-primary" onclick="generatePDF()">📄 生成 PDF 菜单</button>
-        <button class="btn-secondary" onclick="addNewDish()">➕ 添加新菜品</button>
+        <div class="btn-group">
+            <button class="btn-primary" onclick="generatePDFAndEmail()">📄 生成 PDF & 发送邮件</button>
+            <button class="btn-secondary" onclick="addNewDish()">➕ 添加新菜品</button>
+        </div>
         <button class="btn-warning" onclick="resetAll()">🔄 全部复原</button>
+    </div>
+
+    <!-- 过滤器区域 -->
+    <div class="filter-bar">
+        <span class="filter-label">筛选时段：</span>
+        <button class="filter-btn" onclick="toggleFilter('breakfast')" id="filter-breakfast">🌅 早饭</button>
+        <button class="filter-btn" onclick="toggleFilter('lunch')" id="filter-lunch">☀️ 午饭</button>
+        <button class="filter-btn" onclick="toggleFilter('dinner')" id="filter-dinner">🌙 晚饭</button>
     </div>
 
     <div id="menu-container"></div>
 </div>
 
 <script>
-    // 默认菜单数据（已去除数字序号）
+    // 默认菜单数据（初始不带标签，带 tags 字段为了结构统一）
     const DEFAULT_MENU = [
-        { id: 'd1', name: '中式汤面', type: 'radio', options: ['鸡肉', '肉臊子'] },
-        { id: 'd2', name: '中式饺子', type: 'radio', options: ['蒸饺', '煎饺'] },
-        { id: 'd3', name: '泡面', type: 'checkbox', options: ['鸡蛋', '肉臊子', '芝士'] },
-        { id: 'd4', name: '美式松饼', type: 'radio', options: ['蜂蜜', '枫糖浆', '果酱'] },
-        { id: 'd5', name: '玉米片/麦片', type: 'radio', options: ['玉米片', '麦片'] },
-        { id: 'd6', name: '瑞典肉丸', type: 'radio', options: ['肉圆', '肉扁'] },
-        { id: 'd7', name: '三文鱼寿司/刺身', type: 'radio', options: ['寿司', '刺身', '各半'] },
-        { id: 'd8', name: '泰式咖喱', type: 'radio', options: ['海鲜', '鸡腿', '牛肉'] },
-        { id: 'd9', name: '汉堡', type: 'checkbox', options: ['加芝士', '加培根'] },
-        { id: 'd10', name: '薯条', type: 'radio', options: ['普通薯条', '薯格', '红薯条'] }
+        { id: 'd1', name: '中式汤面', type: 'radio', options: ['鸡肉', '肉臊子'], tags: [] },
+        { id: 'd2', name: '中式饺子', type: 'radio', options: ['蒸饺', '煎饺'], tags: [] },
+        { id: 'd3', name: '泡面', type: 'checkbox', options: ['鸡蛋', '肉臊子', '芝士'], tags: [] },
+        { id: 'd4', name: '美式松饼', type: 'radio', options: ['蜂蜜', '枫糖浆', '果酱'], tags: [] },
+        { id: 'd5', name: '玉米片/麦片', type: 'radio', options: ['玉米片', '麦片'], tags: [] },
+        { id: 'd6', name: '瑞典肉丸', type: 'radio', options: ['肉圆', '肉扁'], tags: [] },
+        { id: 'd7', name: '三文鱼寿司/刺身', type: 'radio', options: ['寿司', '刺身', '各半'], tags: [] },
+        { id: 'd8', name: '泰式咖喱', type: 'radio', options: ['海鲜', '鸡腿', '牛肉'], tags: [] },
+        { id: 'd9', name: '汉堡', type: 'checkbox', options: ['加芝士', '加培根'], tags: [] },
+        { id: 'd10', name: '薯条', type: 'radio', options: ['普通薯条', '薯格', '红薯条'], tags: [] }
     ];
 
     let menuData = [];
     let userSelection = {};
     let editingDishId = null;
+    let activeFilters = []; // 当前选中的过滤器标签
 
-    // 本地存储的 Key
-    const STORAGE_KEY_MENU = 'mom_menu_data_v1';
-    const STORAGE_KEY_SELECTION = 'mom_menu_selection_v1';
+    const STORAGE_KEY_MENU = 'mom_menu_data_v2';
+    const STORAGE_KEY_SELECTION = 'mom_menu_selection_v2';
 
-    // === 本地存储操作 ===
     function saveToLocal() {
         try {
             localStorage.setItem(STORAGE_KEY_MENU, JSON.stringify(menuData));
             localStorage.setItem(STORAGE_KEY_SELECTION, JSON.stringify(userSelection));
-        } catch (e) {
-            console.warn("本地存储失败，可能是浏览器隐私模式或空间不足", e);
-        }
+        } catch (e) { console.warn("本地存储失败", e); }
     }
 
     function loadFromLocal() {
@@ -271,25 +317,53 @@
         if (savedMenu) {
             try {
                 menuData = JSON.parse(savedMenu);
+                // 兼容旧数据，确保 tags 存在
+                menuData.forEach(d => { if (!d.tags) d.tags = []; });
                 userSelection = savedSelection ? JSON.parse(savedSelection) : {};
             } catch (e) {
-                console.error("读取本地数据失败，使用默认数据", e);
                 menuData = JSON.parse(JSON.stringify(DEFAULT_MENU));
                 userSelection = {};
             }
         } else {
-            // 没有本地数据，用默认的
             menuData = JSON.parse(JSON.stringify(DEFAULT_MENU));
             userSelection = {};
         }
     }
 
-    // === 核心渲染 ===
+    // === 过滤器逻辑 ===
+    function toggleFilter(tag) {
+        if (activeFilters.includes(tag)) {
+            activeFilters = activeFilters.filter(t => t !== tag);
+        } else {
+            activeFilters.push(tag);
+        }
+        // 更新按钮 UI
+        ['breakfast', 'lunch', 'dinner'].forEach(t => {
+            const btn = document.getElementById(`filter-${t}`);
+            if (activeFilters.includes(t)) btn.classList.add('active');
+            else btn.classList.remove('active');
+        });
+        renderMenu();
+    }
+
+    // === 渲染菜单 ===
     function renderMenu() {
         const container = document.getElementById('menu-container');
         container.innerHTML = '';
 
-        menuData.forEach(dish => {
+        // 根据过滤器过滤数据
+        const displayData = menuData.filter(dish => {
+            if (activeFilters.length === 0) return true; // 没选过滤器，显示所有
+            // 只要菜品标签中包含任意一个选中的过滤器，就显示
+            return dish.tags.some(t => activeFilters.includes(t));
+        });
+
+        if (displayData.length === 0) {
+            container.innerHTML = '<div style="text-align:center; color:#888; padding:20px;">没有找到符合当前时段筛选的菜品...</div>';
+            return;
+        }
+
+        displayData.forEach(dish => {
             const sel = userSelection[dish.id] || { selected: [], extras: [] };
             const isEditing = editingDishId === dish.id;
             
@@ -299,6 +373,15 @@
             let titleHtml = isEditing 
                 ? `<input type="text" class="edit-name-input" id="edit-name-${dish.id}" value="${dish.name}" placeholder="输入菜品名称">`
                 : `<div class="menu-title">${dish.name}</div>`;
+
+            // 标签 UI
+            const tagHtml = `
+                <div class="tags-group">
+                    <button class="tag-btn ${dish.tags.includes('breakfast') ? 'active' : ''}" onclick="toggleDishTag('${dish.id}', 'breakfast')">🌅 早饭</button>
+                    <button class="tag-btn ${dish.tags.includes('lunch') ? 'active' : ''}" onclick="toggleDishTag('${dish.id}', 'lunch')">☀️ 午饭</button>
+                    <button class="tag-btn ${dish.tags.includes('dinner') ? 'active' : ''}" onclick="toggleDishTag('${dish.id}', 'dinner')">🌙 晚饭</button>
+                </div>
+            `;
 
             dishDiv.innerHTML = `
                 <div class="menu-header">
@@ -310,6 +393,7 @@
                         <button class="icon-btn delete-dish-btn" onclick="deleteDish('${dish.id}')" title="删除菜品">🗑️</button>
                     </div>
                 </div>
+                ${tagHtml}
             `;
 
             const contentDiv = document.createElement('div');
@@ -332,12 +416,12 @@
                         </div>
                     </div>
                     <div class="options-group" style="margin-top:20px; border-top:1px dashed #ccc; padding-top:15px;">
-                        <p>附加备注（如：加辣、少放盐）：</p>
+                        <p>附加备注：</p>
                         <div class="extras-list">
                             ${sel.extras.map((extra, index) => `
                                 <span class="extra-tag">
                                     ${extra}
-                                    <button class="icon-btn" onclick="deleteExtra('${dish.id}', ${index})" title="删除">×</button>
+                                    <button class="icon-btn" onclick="deleteExtra('${dish.id}', ${index})">×</button>
                                 </span>
                             `).join('')}
                         </div>
@@ -365,12 +449,7 @@
                 if (sel.extras.length > 0) {
                     extrasHtml = `<div class="extras-group"><p>已加备注：</p><div class="extras-list">`;
                     sel.extras.forEach((extra, index) => {
-                        extrasHtml += `
-                            <span class="extra-tag">
-                                ${extra}
-                                <button class="icon-btn" onclick="deleteExtra('${dish.id}', ${index})" title="删除">×</button>
-                            </span>
-                        `;
+                        extrasHtml += `<span class="extra-tag">${extra}<button class="icon-btn" onclick="deleteExtra('${dish.id}', ${index})">×</button></span>`;
                     });
                     extrasHtml += `</div></div>`;
                 }
@@ -388,7 +467,27 @@
         });
     }
 
-    // === 业务逻辑 ===
+    // 切换菜品的标签
+    function toggleDishTag(dishId, tag) {
+        const dish = menuData.find(d => d.id === dishId);
+        if (dish.tags.includes(tag)) {
+            dish.tags = dish.tags.filter(t => t !== tag);
+        } else {
+            dish.tags.push(tag);
+        }
+        saveToLocal();
+        // 更新当前按钮的 UI 而不重新渲染整个列表，以免页面跳动
+        const btn = document.querySelector(`button[onclick="toggleDishTag('${dishId}', '${tag}')"]`);
+        if (btn) {
+            btn.classList.toggle('active');
+        }
+        // 如果当前有过滤器，重新渲染列表以显示/隐藏
+        if (activeFilters.length > 0) {
+            renderMenu();
+        }
+    }
+
+    // === 基础业务逻辑（不变） ===
     function handleOptionChange(dishId, value, isChecked) {
         const dish = menuData.find(d => d.id === dishId);
         if (!userSelection[dishId]) userSelection[dishId] = { selected: [], extras: [] };
@@ -404,9 +503,7 @@
             }
         } else {
             if (isChecked) {
-                if (!userSelection[dishId].selected.includes(value)) {
-                    userSelection[dishId].selected.push(value);
-                }
+                if (!userSelection[dishId].selected.includes(value)) userSelection[dishId].selected.push(value);
             } else {
                 userSelection[dishId].selected = userSelection[dishId].selected.filter(v => v !== value);
             }
@@ -426,7 +523,6 @@
                 }
             }
         }
-        
         editingDishId = editingDishId === dishId ? null : dishId;
         saveToLocal();
         renderMenu();
@@ -436,11 +532,9 @@
     function deleteOption(dishId, index) {
         const dish = menuData.find(d => d.id === dishId);
         const removedOpt = dish.options.splice(index, 1)[0];
-        
         if (userSelection[dishId] && userSelection[dishId].selected) {
             userSelection[dishId].selected = userSelection[dishId].selected.filter(v => v !== removedOpt);
         }
-        
         saveToLocal();
         renderMenu();
         updateOverview();
@@ -450,10 +544,8 @@
         const input = document.getElementById(`new-opt-${dishId}`);
         const val = input.value.trim();
         if (!val) return alert("请输入选项内容");
-        
         const dish = menuData.find(d => d.id === dishId);
         if (dish.options.includes(val)) return alert("该选项已存在");
-        
         dish.options.push(val);
         saveToLocal();
         renderMenu();
@@ -470,10 +562,8 @@
         const input = document.getElementById(`new-extra-${dishId}`) || document.getElementById(`quick-extra-${dishId}`);
         const val = input.value.trim();
         if (!val) return;
-
         if (!userSelection[dishId]) userSelection[dishId] = { selected: [], extras: [] };
         userSelection[dishId].extras.push(val);
-        
         saveToLocal();
         renderMenu();
         updateOverview();
@@ -481,11 +571,9 @@
 
     function deleteDish(dishId) {
         if (!confirm("确定要删除整个菜品吗？")) return;
-        
         menuData = menuData.filter(d => d.id !== dishId);
         delete userSelection[dishId];
         if (editingDishId === dishId) editingDishId = null;
-        
         saveToLocal();
         renderMenu();
         updateOverview();
@@ -494,7 +582,6 @@
     function addNewDish() {
         const name = prompt("请输入新菜品的名称：");
         if (!name) return;
-        
         const optionStr = prompt("请输入该菜品的选项（用英文逗号分隔，如：微辣,中辣,特辣）：");
         let options = optionStr ? optionStr.split(',').map(s => s.trim()).filter(s => s) : ['默认'];
 
@@ -502,14 +589,13 @@
             id: 'd' + Date.now(),
             name: name,
             type: 'radio',
-            options: options
+            options: options,
+            tags: [] // 新建菜品默认无标签
         });
-        
         saveToLocal();
         renderMenu();
     }
 
-    // === 更新总览（去除数字序号） ===
     function updateOverview() {
         const list = document.getElementById('overview-list');
         list.innerHTML = '';
@@ -522,7 +608,6 @@
                 let text = `${dish.name}`;
                 if (sel.selected.length > 0) text += ` - 【${sel.selected.join('、')}】`;
                 if (sel.extras.length > 0) text += ` (备注: ${sel.extras.join(', ')})`;
-                
                 const li = document.createElement('li');
                 li.textContent = text;
                 list.appendChild(li);
@@ -534,9 +619,15 @@
         }
     }
 
-    // === 生成 PDF ===
-    function generatePDF() {
+    // === PDF 与邮件功能 ===
+    function generatePDFAndEmail() {
         const element = document.getElementById('pdf-content');
+        
+        // 检查是否有选餐
+        if(document.getElementById('overview-list').innerText.includes('暂无选择')) {
+            if(!confirm("您还没有选择任何菜品，确定要生成空白的PDF吗？")) return;
+        }
+
         const opt = {
             margin:       0.5,
             filename:     '妈妈的菜单_点餐单.pdf',
@@ -544,23 +635,61 @@
             html2canvas:  { scale: 2 },
             jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
         };
-        html2pdf().set(opt).from(element).save();
+
+        // 生成并下载 PDF
+        html2pdf().set(opt).from(element).save().then(() => {
+            // PDF 下载触发后，询问是否发送邮件
+            setTimeout(() => {
+                const confirmMail = confirm("✅ PDF 已生成并下载到您的设备！\n\n是否要打开邮件客户端发送邮件？\n(注意：您需要手动将刚刚下载的 PDF 添加为附件)");
+                if (confirmMail) {
+                    const subject = encodeURIComponent("妈妈的菜单点餐单");
+                    const body = encodeURIComponent("您好，\n\n这是本次的点餐单，请查收附件。\n\n(注：请手动附加刚刚下载的 PDF 文件)");
+                    // 打开默认邮件客户端
+                    window.location.href = `mailto:?subject=${subject}&body=${body}`;
+                }
+            }, 500); // 稍微延迟，确保下载提示已弹出
+        });
     }
 
-    // === 全部复原 ===
+    // === 全部复原（保留标签） ===
     function resetAll() {
-        if (confirm("确定要全部复原吗？这会清除你所有添加的菜品、选项、备注和已选状态，恢复到初始菜单。")) {
-            localStorage.removeItem(STORAGE_KEY_MENU);
-            localStorage.removeItem(STORAGE_KEY_SELECTION);
-            
-            // 重新加载默认数据
-            menuData = JSON.parse(JSON.stringify(DEFAULT_MENU));
-            userSelection = {};
-            editingDishId = null;
-            
-            renderMenu();
-            updateOverview();
-        }
+        if (!confirm("确定要全部复原吗？\n\n✅ 菜单选项、自定义备注、已选状态将会清空。\n💡 您为菜品打好的早/中/晚标签会被保留。")) return;
+
+        // 1. 提取当前所有菜品的标签（用 id 映射）
+        const preservedTags = {};
+        menuData.forEach(dish => {
+            if (dish.tags && dish.tags.length > 0) {
+                preservedTags[dish.id] = [...dish.tags];
+            }
+        });
+
+        // 2. 重置菜单数据（加载默认）
+        menuData = JSON.parse(JSON.stringify(DEFAULT_MENU));
+        
+        // 3. 恢复标签
+        menuData.forEach(dish => {
+            if (preservedTags[dish.id]) {
+                dish.tags = preservedTags[dish.id];
+            } else {
+                dish.tags = [];
+            }
+        });
+
+        // 4. 清空选择和状态
+        userSelection = {};
+        editingDishId = null;
+        activeFilters = [];
+        
+        // 重置过滤按钮UI
+        ['breakfast', 'lunch', 'dinner'].forEach(t => {
+            const btn = document.getElementById(`filter-${t}`);
+            if (btn) btn.classList.remove('active');
+        });
+
+        // 5. 保存并重新渲染
+        saveToLocal();
+        renderMenu();
+        updateOverview();
     }
 
     // 初始化
